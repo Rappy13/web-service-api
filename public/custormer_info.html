@@ -151,8 +151,17 @@
       const data = await res.json();
 
       if (data.success) {
+        const surveyUrl = `${API_BASE_URL}/fireq12.html?id=${encodeURIComponent(data.id)}`;
         messageEl.className = 'success';
-        messageEl.innerHTML = `登錄成功！您的專屬編號為：<div class="id-box">${data.id}</div>`;
+        messageEl.innerHTML = `
+          登錄成功！請將以下作答網址提供給填答人員：
+          <div class="id-box" style="font-size:14px;word-break:break-all;letter-spacing:normal;">
+            <a href="${surveyUrl}" target="_blank" rel="noopener">${surveyUrl}</a>
+          </div>
+          <div style="margin-top:10px;font-size:13px;color:var(--error);font-weight:600;">
+            作答截止時間：${data.expires_at}（GMT+8）
+          </div>
+        `;
         form.reset();
       } else {
         messageEl.className = 'error';
