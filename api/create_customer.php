@@ -100,9 +100,17 @@ try {
         'phone' => $phone,
     ]);
 
-    $expiresAt = (new DateTime('+3 days'))->format('Y-m-d H:i:s');
+    // 直接查回資料庫實際寫入的時間，確保跟DB一致（已透過db_config.php統一設為GMT+8）
+    $timeStmt = $pdo->prepare('SELECT created_at, expires_at FROM customer WHERE id = :id');
+    $timeStmt->execute(['id' => $newId]);
+    $times = $timeStmt->fetch();
 
-    echo json_encode(['success' => true, 'id' => $newId, 'expires_at' => $expiresAt], JSON_UNESCAPED_UNICODE);
+    echo json_encode([
+        'success' => true,
+        'id' => $newId,
+        'created_at' => $times['created_at'],
+        'expires_at' => $times['expires_at'],
+    ], JSON_UNESCAPED_UNICODE);
 } catch (PDOException $e) {
     http_response_code(500);
     $debug = getenv('APP_DEBUG') === 'true';
