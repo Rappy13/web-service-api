@@ -1,55 +1,67 @@
 <?php
 /**
  * 寄送問卷連結email
- * 使用SMTP，連線資訊透過Render環境變數設定：
- *   SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASSWORD,
- *   SMTP_SECURE (tls 或 ssl), SMTP_FROM_EMAIL, SMTP_FROM_NAME
- */
-
-require_once __DIR__ . '/../vendor/autoload.php';
-
-use PHPMailer\PHPMailer\PHPMailer;
-use PHPMailer\PHPMailer\Exception;
-
-/**
+ * 改用 Resend 的 HTTP API（走HTTPS，不受Render免費方案封鎖SMTP埠的限制）
+ *
+ * 需要的環境變數：
+ *   RESEND_API_KEY   - 在 https://resend.com 註冊後於後台取得
+ *   RESEND_FROM_EMAIL - 寄件者email，沒驗證自訂網域前只能用 onboarding@resend.dev
+ *   SMTP_FROM_NAME    - 寄件者顯示名稱（沿用舊變數名稱，沒設定會用預設值）
+ *
+ * 注意：Resend 若尚未驗證你自己的網域，收件者只能是你Resend帳號本身註冊的Email，
+ * 寄給其他地址會被API拒絕。要正式對外寄信，需要到Resend後台驗證一個網域。
+ *
  * @return array{sent: bool, error: string|null}
  */
 function send_survey_email(string $toEmail, string $unitName, string $surveyUrl, string $expiresAt): array {
-    if (!getenv('SMTP_HOST')) {
-        return ['sent' => false, 'error' => '尚未設定SMTP_HOST等環境變數，略過寄信'];
+    $apiKey = getenv('RESEND_API_KEY');
+    if (!$apiKey) {
+        return ['sent' => false, 'error' => '尚未設定RESEND_API_KEY環境變數，略過寄信'];
     }
 
-    $mail = new PHPMailer(true);
+    $fromEmail = getenv('RESEND_FROM_EMAIL') ?: 'onboarding@resend.dev';
+    $fromName = getenv('SMTP_FROM_NAME') ?: '消防安全問卷系統';
 
-    try {
-        $mail->isSMTP();
-        $mail->Host = getenv('SMTP_HOST');
-        $mail->SMTPAuth = true;
-        $mail->Username = getenv('SMTP_USER');
-        $mail->Password = getenv('SMTP_PASSWORD');
-        $mail->SMTPSecure = getenv('SMTP_SECURE') ?: PHPMailer::ENCRYPTION_STARTTLS; // 'tls' 或 'ssl'
-        $mail->Port = (int)(getenv('SMTP_PORT') ?: 587);
-        $mail->CharSet = 'UTF-8';
-        $mail->Timeout = 10; // 秒。避免SMTP設定有誤或未設定時，卡住整個API請求
+    $html = <<<HTML
+        <p>您好，</p>
+        <p>感謝貴單位（{$unitName}）登錄，以下是本次消防安全Q12問卷的作答連結：</p>
+        <p><a href="{$surveyUrl}">{$surveyUrl}</a></p>
+        <p><strong>作答截止時間：{$expiresAt}（GMT+8）</strong>，逾期將無法作答，請盡快完成填寫。</p>
+        HTML;
 
-        $fromEmail = getenv('SMTP_FROM_EMAIL') ?: getenv('SMTP_USER');
-        $fromName = getenv('SMTP_FROM_NAME') ?: '消防安全問卷系統';
-        $mail->setFrom($fromEmail, $fromName);
-        $mail->addAddress($toEmail);
+    $payload = json_encode([
+        'from' => "{$fromName} <{$fromEmail}>",
+        'to' => [$toEmail],
+        'subject' => "【{$unitName}】消防安全Q12問卷作答連結",
+        'html' => $html,
+    ], JSON_UNESCAPED_UNICODE);
 
-        $mail->isHTML(true);
-        $mail->Subject = "【{$unitName}】消防安全Q12問卷作答連結";
-        $mail->Body = <<<HTML
-            <p>您好，</p>
-            <p>感謝貴單位（{$unitName}）登錄，以下是本次消防安全Q12問卷的作答連結：</p>
-            <p><a href="{$surveyUrl}">{$surveyUrl}</a></p>
-            <p><strong>作答截止時間：{$expiresAt}（GMT+8）</strong>，逾期將無法作答，請盡快完成填寫。</p>
-            HTML;
-        $mail->AltBody = "作答連結：{$surveyUrl}\n作答截止時間：{$expiresAt}（GMT+8）";
+    $ch = curl_init('https://api.resend.com/emails');
+    curl_setopt_array($ch, [
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_POST => true,
+        CURLOPT_POSTFIELDS => $payload,
+        CURLOPT_HTTPHEADER => [
+            'Authorization: Bearer ' . $apiKey,
+            'Content-Type: application/json',
+        ],
+        CURLOPT_TIMEOUT => 10, // 秒，避免卡住整個API請求
+    ]);
 
-        $mail->send();
+    $response = curl_exec($ch);
+    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    $curlError = curl_error($ch);
+    curl_close($ch);
+
+    if ($curlError) {
+        return ['sent' => false, 'error' => "cURL錯誤: {$curlError}"];
+    }
+
+    if ($httpCode >= 200 && $httpCode < 300) {
         return ['sent' => true, 'error' => null];
-    } catch (Exception $e) {
-        return ['sent' => false, 'error' => $mail->ErrorInfo];
     }
+
+    $decoded = json_decode($response, true);
+    $message = $decoded['message'] ?? $response;
+    return ['sent' => false, 'error' => "Resend API錯誤 (HTTP {$httpCode}): {$message}"];
 }
