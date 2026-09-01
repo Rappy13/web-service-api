@@ -15,6 +15,10 @@ use PHPMailer\PHPMailer\Exception;
  * @return array{sent: bool, error: string|null}
  */
 function send_survey_email(string $toEmail, string $unitName, string $surveyUrl, string $expiresAt): array {
+    if (!getenv('SMTP_HOST')) {
+        return ['sent' => false, 'error' => '尚未設定SMTP_HOST等環境變數，略過寄信'];
+    }
+
     $mail = new PHPMailer(true);
 
     try {
@@ -26,6 +30,7 @@ function send_survey_email(string $toEmail, string $unitName, string $surveyUrl,
         $mail->SMTPSecure = getenv('SMTP_SECURE') ?: PHPMailer::ENCRYPTION_STARTTLS; // 'tls' 或 'ssl'
         $mail->Port = (int)(getenv('SMTP_PORT') ?: 587);
         $mail->CharSet = 'UTF-8';
+        $mail->Timeout = 10; // 秒。避免SMTP設定有誤或未設定時，卡住整個API請求
 
         $fromEmail = getenv('SMTP_FROM_EMAIL') ?: getenv('SMTP_USER');
         $fromName = getenv('SMTP_FROM_NAME') ?: '消防安全問卷系統';
