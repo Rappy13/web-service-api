@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>消防安全敬業度與應變成熟度量表</title>
+<style>
+  :root {
+    --primary: #dc2626;
+    --primary-dark: #b91c1c;
+    --border: #d1d5db;
+    --bg: #f3f4f6;
+    --text: #111827;
+    --muted: #6b7280;
+    --success: #16a34a;
+    --error: #dc2626;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: "Noto Sans TC", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    padding: 24px;
+  }
+  .wrap {
+    max-width: 680px;
+    margin: 0 auto;
+  }
+  .card {
+    background: #fff;
+    border-radius: 14px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+    padding: 32px 28px;
+    margin-bottom: 16px;
+  }
+
+  /* ---- 進度條 ---- */
+  .progress-track {
+    height: 6px;
+    background: #e5e7eb;
+    border-radius: 999px;
+    overflow: hidden;
+    margin-bottom: 20px;
+  }
+  .progress-fill {
+    height: 100%;
+    background: var(--primary);
+    border-radius: 999px;
+    transition: width .25s ease;
+  }
+  .step-label {
+    font-size: 13px;
+    color: var(--muted);
+    margin-bottom: 20px;
+  }
+
+  /* ---- 說明頁 ---- */
+  h1 {
+    font-size: 22px;
+    margin: 0 0 6px;
+    text-align: center;
+  }
+  h2.subtitle {
+    font-size: 15px;
+    font-weight: 400;
+    color: var(--muted);
+    text-align: center;
+    margin: 0 0 24px;
+  }
+  .intro-section h3 {
+    font-size: 15px;
+    margin: 0 0 8px;
+    color: var(--primary-dark);
+  }
+  .intro-section p {
+    font-size: 14px;
+    line-height: 1.8;
+    color: #374151;
+    margin: 0 0 20px;
+  }
+  .scale-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 24px;
+  }
+  .scale-legend span {
+    background: #fef2f2;
+    color: var(--primary-dark);
+    font-size: 12px;
+    padding: 4px 10px;
+    border-radius: 999px;
+    border: 1px solid #fecaca;
+  }
+
+  label {
+    display: block;
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 6px;
+  }
+  .required::after {
+    content: " *";
+    color: var(--error);
+  }
+  input[type="text"] {
+    width: 100%;
+    padding: 10px 12px;
+    font-size: 15px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    margin-bottom: 20px;
+    outline: none;
+  }
+  input[type="text"]:focus { border-color: var(--primary); }
+
+  /* ---- 題目層 ---- */
+  .layer-title {
+    font-size: 17px;
+    font-weight: 700;
+    margin: 0 0 20px;
+    color: var(--primary-dark);
+    border-left: 4px solid var(--primary);
+    padding-left: 10px;
+  }
+  .question {
+    margin-bottom: 26px;
+    padding-bottom: 22px;
+    border-bottom: 1px solid #f0f0f0;
+  }
+  .question:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+  .question-code {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--primary);
+    margin-bottom: 4px;
+  }
+  .question-text {
+    font-size: 14.5px;
+    line-height: 1.6;
+    margin-bottom: 14px;
+  }
+  .options {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  .option-circle {
+    width: 46px;
+    height: 46px;
+    border-radius: 50%;
+    border: 2px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    cursor: pointer;
+    user-select: none;
+    transition: all .15s;
+    background: #fff;
+  }
+  .option-circle:hover { border-color: var(--primary); }
+  .option-circle.selected {
+    background: var(--primary);
+    border-color: var(--primary);
+    color: #fff;
+    transform: scale(1.08);
+  }
+  .option-hint {
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 6px;
+  }
+  .question.unanswered .question-text { color: var(--error); }
+
+  /* ---- 確認頁 ---- */
+  .review-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13.5px;
+    margin-bottom: 10px;
+  }
+  .review-table th, .review-table td {
+    text-align: left;
+    padding: 8px 6px;
+    border-bottom: 1px solid #f0f0f0;
+  }
+  .review-table th { color: var(--muted); font-weight: 600; width: 70%; }
+  .review-score {
+    font-weight: 700;
+    color: var(--primary-dark);
+    text-align: center;
+  }
+
+  /* ---- 按鈕列 ---- */
+  .btn-row {
+    display: flex;
+    gap: 12px;
+    margin-top: 24px;
+  }
+  button {
+    flex: 1;
+    padding: 13px;
+    font-size: 15px;
+    font-weight: 600;
+    border-radius: 8px;
+    border: none;
+    cursor: pointer;
+    transition: background .15s, opacity .15s;
+  }
+  .btn-primary {
+    background: var(--primary);
+    color: #fff;
+  }
+  .btn-primary:hover { background: var(--primary-dark); }
+  .btn-primary:disabled { background: #9ca3af; cursor: not-allowed; }
+  .btn-secondary {
+    background: #f3f4f6;
+    color: var(--text);
+    border: 1px solid var(--border);
+  }
+  .btn-secondary:hover { background: #e5e7eb; }
+
+  #message {
+    margin-top: 14px;
+    font-size: 14px;
+    text-align: center;
+    display: none;
+  }
+  #message.error { color: var(--error); display: block; }
+  #message.success { color: var(--success); display: block; font-weight: 600; }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <div class="card">
+    <div class="progress-track"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
+    <div class="step-label" id="stepLabel"></div>
+    <div id="content"></div>
+    <div id="message"></div>
+  </div>
+</div>
+
+<script>
+  // ============ 設定 ============
+  // 請將此處換成實際部署在 Render 上的 API 網址
+  const API_BASE_URL = 'https://web-service-api-ru6y.onrender.com';
+
+  // customer的10碼ID：從網址參數 ?id=XXXXXXXXXX 取得
+  const urlParams = new URLSearchParams(window.location.search);
+  const customerId = urlParams.get('id') || '';
+
+  const LEGEND = ['非常不同意', '不同意', '普通/無意見', '同意', '非常同意'];
+
+  const LAYERS = [
+    {
+      title: '第一層：火場認知與防護硬體（基礎防護）',
+      questions: [
+        { code: 'Q1', text: '我清楚知道當所在環境發生火災時，當下最優先的應變動作與判斷原則（如：關門擋煙、確認避難路徑，而非盲目逃跑）。' },
+        { code: 'Q2', text: '我工作場所中的滅火器、室內消防栓、火警警報與逃生通道，隨時都處於可用、暢通且無堆置雜物的狀態。' },
+      ],
+    },
+    {
+      title: '第二層：實操能力與正向支持（應變自信）',
+      questions: [
+        { code: 'Q3', text: '如果現場突然起火，我有充分的信心與能力，在確保自身安全的前提下正確操作滅火設備或啟動應變程序。' },
+        { code: 'Q4', text: '在過去的七天裡，當我主動消除火災隱患（如拔除過載插頭、排除逃生障礙）時，曾受到主管或同事的肯定。' },
+        { code: 'Q5', text: '我相信主管高度重視場所的防火安全，絕不會因節省成本或追求效率而忽視消防維護與安全規範。' },
+        { code: 'Q6', text: '單位鼓勵並支持我參與實作型的消防安全訓練（如實際滅火、情境模擬），提升真實應變能力。' },
+      ],
+    },
+    {
+      title: '第三層：通報文化與團隊協作（避難互信）',
+      questions: [
+        { code: 'Q7', text: '當我提出火災風險疑慮（如電線老化、防火門無法閉合）時，單位會立即採取行動改善，我的意見受到高度重視。' },
+        { code: 'Q8', text: '組織對消防安全的重視與推動，讓我深刻體會到守護自己與同事的生命安全是我的重要責任。' },
+        { code: 'Q9', text: '我的同事們日常皆具備良好的防火意識，不會在禁菸區吸菸、不亂接延長線，並能相互提醒違規。' },
+        { code: 'Q10', text: '在面對火災警報響起或突發煙熱威脅時，我清楚知道身邊同仁能互相照應、配合完成疏散與清點。' },
+      ],
+    },
+    {
+      title: '第四層：實戰演練與持續改善（能力演進）',
+      questions: [
+        { code: 'Q11', text: '在過去的六個月內，單位曾針對消防演練過程或逃生計畫進行檢討，明確點出我們可以改進的應變盲點。' },
+        { code: 'Q12', text: '在過去一年裡，我參與的消防演習不是「走形式的腳本演戲」，而是讓我真正學會了判斷火場情境與自救的新技能。' },
+      ],
+    },
+  ];
+
+  // step 0 = 說明頁, 1~4 = 題目層, 5 = 確認頁
+  const TOTAL_STEPS = LAYERS.length + 2;
+  let currentStep = 0;
+  let name = '';
+  let unitName = '';
+  const answers = {}; // { Q1: 3, Q2: 5, ... }
+
+  const contentEl = document.getElementById('content');
+  const progressFill = document.getElementById('progressFill');
+  const stepLabel = document.getElementById('stepLabel');
+  const messageEl = document.getElementById('message');
+
+  function updateProgress() {
+    progressFill.style.width = `${(currentStep / (TOTAL_STEPS - 1)) * 100}%`;
+    if (currentStep === 0) {
+      stepLabel.textContent = '說明頁';
+    } else if (currentStep <= LAYERS.length) {
+      stepLabel.textContent = `第 ${currentStep} / ${LAYERS.length} 層`;
+    } else {
+      stepLabel.textContent = '確認送出';
+    }
+  }
+
+  function renderIntro() {
+    contentEl.innerHTML = `
+      <h1>消防安全敬業度與應變成熟度量表 (Fire Safety Q12)</h1>
+      <h2 class="subtitle">組織消防安全氣候、心理安全感與實戰應變能力評估手冊</h2>
+      ${unitName ? `<p style="text-align:center;font-size:13px;color:var(--primary-dark);margin-top:-14px;margin-bottom:20px;">填答單位：${unitName}</p>` : ''}
+
+      <div class="intro-section">
+        <h3>量表設計理念與說明</h3>
+        <p>本問卷轉化蓋洛普 Q12 敬業度核心架構，專注於評估組織內部的「基礎防護與硬體認知」、「管理支持與正向肯定」、「全員互信與安全氣候」及「實戰演練與持續改善」。採用李克特 5 點量表評分，旨在作為預測組織火災應變盲點與安全領導力的領先指標。</p>
+      </div>
+
+      <div class="scale-legend">
+        ${LEGEND.map((l, i) => `<span>${i + 1} = ${l}</span>`).join('')}
+      </div>
+
+      <label class="required" for="nameInput">姓名</label>
+      <input type="text" id="nameInput" placeholder="請輸入您的姓名" value="${name}">
+
+      <div class="btn-row">
+        <button class="btn-primary" id="startBtn" style="flex:1">開始作答</button>
+      </div>
+    `;
+    document.getElementById('startBtn').addEventListener('click', () => {
+      const val = document.getElementById('nameInput').value.trim();
+      if (!val) {
+        showMessage('請先填寫姓名', 'error');
+        return;
+      }
+      name = val;
+      hideMessage();
+      currentStep = 1;
+      render();
+    });
+  }
+
+  function renderLayer(layerIndex) {
+    const layer = LAYERS[layerIndex];
+    contentEl.innerHTML = `
+      <div class="layer-title">${layer.title}</div>
+      ${layer.questions.map(q => `
+        <div class="question" data-code="${q.code}">
+          <div class="question-code">${q.code}</div>
+          <div class="question-text">${q.text}</div>
+          <div class="options">
+            ${[1, 2, 3, 4, 5].map(v => `
+              <div class="option-circle ${answers[q.code] === v ? 'selected' : ''}" data-code="${q.code}" data-value="${v}">${v}</div>
+            `).join('')}
+          </div>
+          <div class="option-hint">① 非常不同意　② 不同意　③ 普通/無意見　④ 同意　⑤ 非常同意</div>
+        </div>
+      `).join('')}
+      <div class="btn-row">
+        <button class="btn-secondary" id="prevBtn">上一步</button>
+        <button class="btn-primary" id="nextBtn">下一步</button>
+      </div>
+    `;
+
+    contentEl.querySelectorAll('.option-circle').forEach(el => {
+      el.addEventListener('click', () => {
+        const code = el.dataset.code;
+        const value = parseInt(el.dataset.value, 10);
+        answers[code] = value;
+        contentEl.querySelectorAll(`.option-circle[data-code="${code}"]`).forEach(o => o.classList.remove('selected'));
+        el.classList.add('selected');
+        contentEl.querySelector(`.question[data-code="${code}"]`).classList.remove('unanswered');
+        hideMessage();
+      });
+    });
+
+    document.getElementById('prevBtn').addEventListener('click', () => {
+      currentStep -= 1;
+      render();
+    });
+
+    document.getElementById('nextBtn').addEventListener('click', () => {
+      const unanswered = layer.questions.filter(q => !answers[q.code]);
+      if (unanswered.length > 0) {
+        unanswered.forEach(q => {
+          contentEl.querySelector(`.question[data-code="${q.code}"]`).classList.add('unanswered');
+        });
+        showMessage('請完成本頁所有題目再繼續', 'error');
+        return;
+      }
+      hideMessage();
+      currentStep += 1;
+      render();
+    });
+  }
+
+  function renderReview() {
+    const allQuestions = LAYERS.flatMap(l => l.questions);
+    contentEl.innerHTML = `
+      <div class="layer-title">確認作答結果</div>
+      <table class="review-table">
+        <tr><th>姓名</th><td>${name}</td></tr>
+        ${allQuestions.map(q => `
+          <tr><th>${q.code}．${q.text}</th><td class="review-score">${answers[q.code]}</td></tr>
+        `).join('')}
+      </table>
+      <div class="btn-row">
+        <button class="btn-secondary" id="prevBtn">上一步</button>
+        <button class="btn-primary" id="submitBtn">送出</button>
+      </div>
+    `;
+
+    document.getElementById('prevBtn').addEventListener('click', () => {
+      currentStep -= 1;
+      render();
+    });
+
+    document.getElementById('submitBtn').addEventListener('click', submitResult);
+  }
+
+  async function submitResult() {
+    const submitBtn = document.getElementById('submitBtn');
+    submitBtn.disabled = true;
+    submitBtn.textContent = '送出中...';
+    hideMessage();
+
+    const payload = { id: customerId, name, ...answers };
+
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/submit_result.php`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+
+      if (data.success) {
+        contentEl.innerHTML = `<h1>感謝您的填寫！</h1><p style="text-align:center;color:var(--muted);">您的作答已成功送出。</p>`;
+        stepLabel.textContent = '已完成';
+        progressFill.style.width = '100%';
+      } else {
+        showMessage(data.message || '送出失敗，請稍後再試', 'error');
+        submitBtn.disabled = false;
+        submitBtn.textContent = '送出';
+      }
+    } catch (err) {
+      showMessage('無法連線至伺服器，請稍後再試', 'error');
+      submitBtn.disabled = false;
+      submitBtn.textContent = '送出';
+    }
+  }
+
+  function showMessage(text, type) {
+    messageEl.textContent = text;
+    messageEl.className = type;
+  }
+  function hideMessage() {
+    messageEl.textContent = '';
+    messageEl.className = '';
+  }
+
+  function render() {
+    updateProgress();
+    if (currentStep === 0) {
+      renderIntro();
+    } else if (currentStep <= LAYERS.length) {
+      renderLayer(currentStep - 1);
+    } else {
+      renderReview();
+    }
+    window.scrollTo(0, 0);
+  }
+
+  function renderBlocked(message) {
+    contentEl.innerHTML = `
+      <h1>無法進入問卷</h1>
+      <p style="text-align:center;color:var(--muted);font-size:14px;line-height:1.8;">${message}</p>
+    `;
+    stepLabel.textContent = '';
+    progressFill.style.width = '0%';
+  }
+
+  async function verifyAndStart() {
+    contentEl.innerHTML = `<p style="text-align:center;color:var(--muted);">驗證中，請稍候...</p>`;
+
+    if (!customerId) {
+      renderBlocked('連結缺少ID參數，請確認您使用的是正確的問卷連結。');
+      return;
+    }
+
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/verify_customer.php?id=${encodeURIComponent(customerId)}`);
+      const data = await res.json();
+
+      if (!data.success) {
+        renderBlocked(data.message || '此連結無法使用，請聯繫相關單位確認。');
+        return;
+      }
+
+      unitName = data.unit_name || '';
+      render();
+    } catch (err) {
+      renderBlocked('無法連線至伺服器，請稍後再試。');
+    }
+  }
+
+  verifyAndStart();
+</script>
+
+</body>
+</html>
