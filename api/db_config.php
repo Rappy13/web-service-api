@@ -1,172 +1,30 @@
-<!DOCTYPE html>
-<html lang="zh-Hant">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>客戶資料登錄</title>
-<style>
-  :root {
-    --primary: #2563eb;
-    --primary-dark: #1d4ed8;
-    --border: #d1d5db;
-    --bg: #f3f4f6;
-    --error: #dc2626;
-    --success: #16a34a;
-  }
-  * { box-sizing: border-box; }
-  body {
-    margin: 0;
-    font-family: "Noto Sans TC", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-    background: var(--bg);
-    min-height: 100vh;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 24px;
-  }
-  .card {
-    background: #fff;
-    width: 100%;
-    max-width: 420px;
-    border-radius: 12px;
-    box-shadow: 0 4px 16px rgba(0,0,0,0.08);
-    padding: 32px 28px;
-  }
-  h1 {
-    font-size: 20px;
-    margin: 0 0 24px;
-    color: #111827;
-    text-align: center;
-  }
-  label {
-    display: block;
-    font-size: 14px;
-    font-weight: 600;
-    color: #374151;
-    margin-bottom: 6px;
-  }
-  .required::after {
-    content: " *";
-    color: var(--error);
-  }
-  input {
-    width: 100%;
-    padding: 10px 12px;
-    font-size: 15px;
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    margin-bottom: 18px;
-    outline: none;
-    transition: border-color .15s;
-  }
-  input:focus {
-    border-color: var(--primary);
-  }
-  button {
-    width: 100%;
-    padding: 12px;
-    font-size: 15px;
-    font-weight: 600;
-    color: #fff;
-    background: var(--primary);
-    border: none;
-    border-radius: 8px;
-    cursor: pointer;
-    transition: background .15s;
-  }
-  button:hover { background: var(--primary-dark); }
-  button:disabled { background: #9ca3af; cursor: not-allowed; }
+<?php
+/**
+ * 資料庫連線設定
+ * 這些值請在 Render 的 Environment Variables 設定，
+ * 對應到 Clever Cloud MySQL add-on 提供的連線資訊
+ * (在 Clever Cloud 的 add-on 頁面可以找到 Host / Port / Database / User / Password)
+ */
 
-  #message {
-    margin-top: 16px;
-    font-size: 14px;
-    text-align: center;
-    display: none;
-  }
-  #message.error { color: var(--error); display: block; }
-  #message.success {
-    color: var(--success);
-    display: block;
-    font-weight: 600;
-  }
-  .id-box {
-    margin-top: 10px;
-    padding: 10px;
-    background: #f0fdf4;
-    border: 1px solid #bbf7d0;
-    border-radius: 8px;
-    font-size: 18px;
-    letter-spacing: 2px;
-    font-weight: 700;
-    color: #15803d;
-  }
-</style>
-</head>
-<body>
+function get_db_connection(): PDO {
+    $host = getenv('DB_HOST');       // 例如 bxxxxxxxxxxxx-mysql.services.clever-cloud.com
+    $port = getenv('DB_PORT') ?: '3306';
+    $dbname = getenv('DB_NAME');     // Clever Cloud 給的資料庫名稱
+    $user = getenv('DB_USER');
+    $pass = getenv('DB_PASSWORD');
 
-<div class="card">
-  <h1>客戶資料登錄</h1>
-  <form id="customerForm">
-    <label class="required" for="unit_name">單位名稱</label>
-    <input type="text" id="unit_name" name="unit_name" required>
-
-    <label class="required" for="email">Email</label>
-    <input type="email" id="email" name="email" required>
-
-    <label for="phone">連絡電話</label>
-    <input type="tel" id="phone" name="phone">
-
-    <button type="submit" id="submitBtn">送出</button>
-  </form>
-  <div id="message"></div>
-</div>
-
-<script>
-  // 請將此處換成實際部署在 Render 上的 API 網址
-  const API_BASE_URL = 'https://your-api.onrender.com';
-
-  const form = document.getElementById('customerForm');
-  const messageEl = document.getElementById('message');
-  const submitBtn = document.getElementById('submitBtn');
-
-  form.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    messageEl.className = '';
-    messageEl.innerHTML = '';
-    submitBtn.disabled = true;
-    submitBtn.textContent = '送出中...';
-
-    const payload = {
-      unit_name: document.getElementById('unit_name').value.trim(),
-      email: document.getElementById('email').value.trim(),
-      phone: document.getElementById('phone').value.trim(),
-    };
+    $dsn = "mysql:host={$host};port={$port};dbname={$dbname};charset=utf8mb4";
 
     try {
-      const res = await fetch(`${API_BASE_URL}/api/create_customer.php`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
-      const data = await res.json();
-
-      if (data.success) {
-        messageEl.className = 'success';
-        messageEl.innerHTML = `登錄成功！您的專屬編號為：<div class="id-box">${data.id}</div>`;
-        form.reset();
-      } else {
-        messageEl.className = 'error';
-        messageEl.textContent = data.message || '送出失敗，請稍後再試';
-      }
-    } catch (err) {
-      messageEl.className = 'error';
-      messageEl.textContent = '無法連線至伺服器，請稍後再試';
-    } finally {
-      submitBtn.disabled = false;
-      submitBtn.textContent = '送出';
+        $pdo = new PDO($dsn, $user, $pass, [
+            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+            PDO::ATTR_EMULATE_PREPARES => false,
+        ]);
+        return $pdo;
+    } catch (PDOException $e) {
+        http_response_code(500);
+        echo json_encode(['success' => false, 'message' => '資料庫連線失敗'], JSON_UNESCAPED_UNICODE);
+        exit;
     }
-  });
-</script>
-
-</body>
-</html>
+}
