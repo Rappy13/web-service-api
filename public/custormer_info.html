@@ -151,12 +151,11 @@
       const data = await res.json();
 
       if (data.success) {
-        const surveyUrl = `${API_BASE_URL}/fireq12.html?id=${encodeURIComponent(data.id)}`;
         messageEl.className = 'success';
         messageEl.innerHTML = `
-          登錄成功！請將以下作答網址提供給填答人員：
+          登錄成功！${data.email_sent ? '問卷連結已寄送到填寫的Email。' : '<span style="color:var(--error);">Email寄送失敗，請手動複製下方連結給填答人員：</span>'}
           <div class="id-box" style="font-size:14px;word-break:break-all;letter-spacing:normal;">
-            <a href="${surveyUrl}" target="_blank" rel="noopener">${surveyUrl}</a>
+            <a href="${data.survey_url}" target="_blank" rel="noopener">${data.survey_url}</a>
           </div>
           <div style="margin-top:10px;font-size:13px;color:var(--error);font-weight:600;">
             作答截止時間：${data.expires_at}（GMT+8）
