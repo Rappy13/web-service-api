@@ -24,7 +24,7 @@ function get_db_connection(): PDO {
         return $pdo;
     } catch (PDOException $e) {
         http_response_code(500);
-        $debug = getenv('APP_DEBUG') === 'true';
+        $debug = getenv('APP_DEBUG') === 'false';
         echo json_encode([
             'success' => false,
             'message' => '資料庫連線失敗',
