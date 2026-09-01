@@ -105,5 +105,10 @@ try {
     echo json_encode(['success' => true, 'id' => $newId, 'expires_at' => $expiresAt], JSON_UNESCAPED_UNICODE);
 } catch (PDOException $e) {
     http_response_code(500);
-    echo json_encode(['success' => false, 'message' => '資料寫入失敗'], JSON_UNESCAPED_UNICODE);
+    $debug = getenv('APP_DEBUG') === 'true';
+    echo json_encode([
+        'success' => false,
+        'message' => '資料寫入失敗',
+        'debug' => $debug ? $e->getMessage() : null,
+    ], JSON_UNESCAPED_UNICODE);
 }
