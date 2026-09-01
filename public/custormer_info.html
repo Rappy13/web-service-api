@@ -151,9 +151,17 @@
       const data = await res.json();
 
       if (data.success) {
+        let headline;
+        if (data.reused) {
+          headline = '這組Email尚有未過期的問卷連結，以下為原本的連結（未重新寄送Email）：';
+        } else if (data.email_sent) {
+          headline = '登錄成功！問卷連結已寄送到填寫的Email。';
+        } else {
+          headline = '登錄成功！<span style="color:var(--error);">Email寄送失敗，請手動複製下方連結給填答人員：</span>';
+        }
         messageEl.className = 'success';
         messageEl.innerHTML = `
-          登錄成功！${data.email_sent ? '問卷連結已寄送到填寫的Email。' : '<span style="color:var(--error);">Email寄送失敗，請手動複製下方連結給填答人員：</span>'}
+          ${headline}
           <div class="id-box" style="font-size:14px;word-break:break-all;letter-spacing:normal;">
             <a href="${data.survey_url}" target="_blank" rel="noopener">${data.survey_url}</a>
           </div>
