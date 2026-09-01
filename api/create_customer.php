@@ -58,6 +58,32 @@ if (!empty($errors)) {
 
 $phone = $phone === '' ? null : $phone;
 
+$pdo = get_db_connection();
+
+// --- 檢查這個Email是否已經有尚未過期的紀錄，有的話直接回傳既有的，不重新產生ID也不寄信 ---
+$siteUrl = rtrim(getenv('SITE_URL') ?: (($_SERVER['REQUEST_SCHEME'] ?? 'https') . '://' . $_SERVER['HTTP_HOST']), '/');
+
+$existingStmt = $pdo->prepare(
+    'SELECT id, created_at, expires_at FROM customer 
+     WHERE email = :email AND expires_at > NOW() 
+     ORDER BY created_at DESC LIMIT 1'
+);
+$existingStmt->execute(['email' => $email]);
+$existing = $existingStmt->fetch();
+
+if ($existing) {
+    echo json_encode([
+        'success' => true,
+        'id' => $existing['id'],
+        'created_at' => $existing['created_at'],
+        'expires_at' => $existing['expires_at'],
+        'survey_url' => $siteUrl . '/fireq12.html?id=' . $existing['id'],
+        'email_sent' => false,
+        'reused' => true,
+    ], JSON_UNESCAPED_UNICODE);
+    exit;
+}
+
 // --- 產生10碼英數ID（大寫英文+數字），並確保不重複 ---
 function generate_id(int $length = 10): string {
     $chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
@@ -67,8 +93,6 @@ function generate_id(int $length = 10): string {
     }
     return $id;
 }
-
-$pdo = get_db_connection();
 
 $newId = '';
 $maxAttempts = 10;
@@ -107,7 +131,6 @@ try {
     $times = $timeStmt->fetch();
 
     // 組出問卷作答網址並寄信給填寫人
-    $siteUrl = rtrim(getenv('SITE_URL') ?: (($_SERVER['REQUEST_SCHEME'] ?? 'https') . '://' . $_SERVER['HTTP_HOST']), '/');
     $surveyUrl = $siteUrl . '/fireq12.html?id=' . $newId;
     $emailResult = send_survey_email($email, $unit_name, $surveyUrl, $times['expires_at']);
 
@@ -120,6 +143,7 @@ try {
         'survey_url' => $surveyUrl,
         'email_sent' => $emailResult['sent'],
         'email_error' => $debug ? $emailResult['error'] : null,
+        'reused' => false,
     ], JSON_UNESCAPED_UNICODE);
 } catch (PDOException $e) {
     http_response_code(500);
