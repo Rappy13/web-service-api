@@ -24,7 +24,12 @@ function get_db_connection(): PDO {
         return $pdo;
     } catch (PDOException $e) {
         http_response_code(500);
-        echo json_encode(['success' => false, 'message' => '資料庫連線失敗'], JSON_UNESCAPED_UNICODE);
+        $debug = getenv('APP_DEBUG') === 'true';
+        echo json_encode([
+            'success' => false,
+            'message' => '資料庫連線失敗',
+            'debug' => $debug ? $e->getMessage() : null,
+        ], JSON_UNESCAPED_UNICODE);
         exit;
     }
 }
