@@ -24,6 +24,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 }
 
 require_once __DIR__ . '/db_config.php';
+require_once __DIR__ . '/mailer.php';
 
 // 讀取輸入（相容 JSON body 或一般表單 POST）
 $raw = file_get_contents('php://input');
@@ -105,11 +106,20 @@ try {
     $timeStmt->execute(['id' => $newId]);
     $times = $timeStmt->fetch();
 
+    // 組出問卷作答網址並寄信給填寫人
+    $siteUrl = rtrim(getenv('SITE_URL') ?: (($_SERVER['REQUEST_SCHEME'] ?? 'https') . '://' . $_SERVER['HTTP_HOST']), '/');
+    $surveyUrl = $siteUrl . '/fireq12.html?id=' . $newId;
+    $emailResult = send_survey_email($email, $unit_name, $surveyUrl, $times['expires_at']);
+
+    $debug = getenv('APP_DEBUG') === 'true';
     echo json_encode([
         'success' => true,
         'id' => $newId,
         'created_at' => $times['created_at'],
         'expires_at' => $times['expires_at'],
+        'survey_url' => $surveyUrl,
+        'email_sent' => $emailResult['sent'],
+        'email_error' => $debug ? $emailResult['error'] : null,
     ], JSON_UNESCAPED_UNICODE);
 } catch (PDOException $e) {
     http_response_code(500);
