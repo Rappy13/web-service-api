@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>客戶資料登錄</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <style>
   :root {
     --primary: #2563eb;
@@ -100,6 +101,16 @@
     font-weight: 700;
     color: #15803d;
   }
+  #qrcode {
+    margin-top: 14px;
+    display: flex;
+    justify-content: center;
+  }
+  #qrcode img, #qrcode canvas {
+    border: 8px solid #fff;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  }
 </style>
 </head>
 <body>
@@ -168,7 +179,13 @@
           <div style="margin-top:10px;font-size:13px;color:var(--error);font-weight:600;">
             作答截止時間：${data.expires_at}（GMT+8）
           </div>
+          <div id="qrcode"></div>
         `;
+        new QRCode(document.getElementById('qrcode'), {
+          text: data.survey_url,
+          width: 160,
+          height: 160,
+        });
         form.reset();
       } else {
         messageEl.className = 'error';
