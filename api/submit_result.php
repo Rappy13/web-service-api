@@ -1,7 +1,8 @@
 <?php
 /**
  * POST /api/submit_result.php
- * body(JSON): { "id": "customer的10碼ID", "name": "...", "Q1": 1~5, ..., "Q12": 1~5 }
+ * body(JSON): { "id": "customer的10碼ID", "Q1": 1~5, ..., "Q12": 1~5 }
+ * 本問卷為不記名，不收集填答人姓名
  *
  * 成功回傳: { "success": true }
  * 失敗回傳: { "success": false, "message": "..." }
@@ -32,17 +33,12 @@ if (!is_array($input)) {
 }
 
 $id = trim($input['id'] ?? '');
-$name = trim($input['name'] ?? '');
 
 // --- 驗證 ---
 $errors = [];
 
 if ($id === '') {
     $errors[] = '缺少客戶ID';
-}
-
-if ($name === '') {
-    $errors[] = '姓名為必填';
 }
 
 $questionKeys = [];
@@ -102,13 +98,13 @@ try {
 }
 
 try {
-    $columns = array_merge(['id', 'name'], $questionKeys);
+    $columns = array_merge(['id'], $questionKeys);
     $placeholders = array_map(fn($c) => ':' . $c, $columns);
 
     $sql = 'INSERT INTO result (' . implode(', ', $columns) . ') VALUES (' . implode(', ', $placeholders) . ')';
     $stmt = $pdo->prepare($sql);
 
-    $params = array_merge(['id' => $id, 'name' => $name], $scores);
+    $params = array_merge(['id' => $id], $scores);
     $stmt->execute($params);
 
     echo json_encode(['success' => true], JSON_UNESCAPED_UNICODE);
