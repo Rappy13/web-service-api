@@ -1,7 +1,15 @@
 <?php
 /**
  * POST /api/submit_result.php
- * body(JSON): { "id": "customer的10碼ID", "Q1": 1~5, ..., "Q12": 1~5 }
+ * body(JSON): {
+ *   "id": "customer的10碼ID",
+ *   "years_of_service": "...", "position": "...",
+ *   "is_fire_brigade_member": "是"|"否", "has_fire_training": "是"|"否",
+ *   "last_training_time": "...",
+ *   "used_extinguisher": "是"|"否", "joined_tabletop_drill": "是"|"否",
+ *   "joined_live_drill": "是"|"否", "experienced_real_fire": "是"|"否",
+ *   "Q1": 1~5, ..., "Q12": 1~5
+ * }
  * 本問卷為不記名，不收集填答人姓名
  *
  * 成功回傳: { "success": true }
@@ -39,6 +47,41 @@ $errors = [];
 
 if ($id === '') {
     $errors[] = '缺少客戶ID';
+}
+
+// 基本資料：填空類欄位（必填文字）
+$textFields = [
+    'years_of_service' => '年資',
+    'position' => '職務',
+    'last_training_time' => '最近一次訓練時間',
+];
+$textValues = [];
+foreach ($textFields as $key => $label) {
+    $value = trim($input[$key] ?? '');
+    if ($value === '') {
+        $errors[] = "{$label}為必填";
+        continue;
+    }
+    $textValues[$key] = $value;
+}
+
+// 基本資料：是/否類欄位（必填，值只能是"是"或"否"）
+$yesNoFields = [
+    'is_fire_brigade_member' => '是否為自衛消防編組成員',
+    'has_fire_training' => '是否接受過消防訓練',
+    'used_extinguisher' => '是否實際操作過滅火器',
+    'joined_tabletop_drill' => '是否參與過桌面演練',
+    'joined_live_drill' => '是否參加過實兵演練',
+    'experienced_real_fire' => '是否曾遇過真實火警',
+];
+$yesNoValues = [];
+foreach ($yesNoFields as $key => $label) {
+    $value = trim($input[$key] ?? '');
+    if ($value !== '是' && $value !== '否') {
+        $errors[] = "{$label}為必填";
+        continue;
+    }
+    $yesNoValues[$key] = $value;
 }
 
 $questionKeys = [];
@@ -98,13 +141,13 @@ try {
 }
 
 try {
-    $columns = array_merge(['id'], $questionKeys);
+    $columns = array_merge(['id'], array_keys($textFields), array_keys($yesNoFields), $questionKeys);
     $placeholders = array_map(fn($c) => ':' . $c, $columns);
 
     $sql = 'INSERT INTO result (' . implode(', ', $columns) . ') VALUES (' . implode(', ', $placeholders) . ')';
     $stmt = $pdo->prepare($sql);
 
-    $params = array_merge(['id' => $id], $scores);
+    $params = array_merge(['id' => $id], $textValues, $yesNoValues, $scores);
     $stmt->execute($params);
 
     echo json_encode(['success' => true], JSON_UNESCAPED_UNICODE);
