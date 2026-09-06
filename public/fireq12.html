@@ -257,35 +257,35 @@
 
   const LAYERS = [
     {
-      title: '第一層：火場認知與防護硬體（基礎防護）',
+      title: '一、基本清楚',
       questions: [
-        { code: 'Q1', text: '我清楚知道當所在環境發生火災時，當下最優先的應變動作與判斷原則（如：關門擋煙、確認避難路徑，而非盲目逃跑）。' },
-        { code: 'Q2', text: '我工作場所中的滅火器、室內消防栓、火警警報與逃生通道，隨時都處於可用、暢通且無堆置雜物的狀態。' },
+        { code: 'Q1', text: '火災警報響起時，我清楚知道自己第一個應該做的動作。' },
+        { code: 'Q2', text: '我知道在什麼情況下應立即發出警報、通報或要求人員疏散，而不需要等待主管指示。' },
+        { code: 'Q3', text: '我知道本場所的逃生路線、替代路線，以及無法逃生時應採取的行動。' },
       ],
     },
     {
-      title: '第二層：實操能力與正向支持（應變自信）',
+      title: '二、個人能力',
       questions: [
-        { code: 'Q3', text: '如果現場突然起火，我有充分的信心與能力，在確保自身安全的前提下正確操作滅火設備或啟動應變程序。' },
-        { code: 'Q4', text: '在過去的七天裡，當我主動消除火災隱患（如拔除過載插頭、排除逃生障礙）時，曾受到主管或同事的肯定。' },
-        { code: 'Q5', text: '我相信主管高度重視場所的防火安全，絕不會因節省成本或追求效率而忽視消防維護與安全規範。' },
-        { code: 'Q6', text: '單位鼓勵並支持我參與實作型的消防安全訓練（如實際滅火、情境模擬），提升真實應變能力。' },
+        { code: 'Q4', text: '我知道如何判斷火勢是否仍可處理，以及什麼情況下必須放棄滅火、立即撤離。' },
+        { code: 'Q5', text: '我能正確操作自己可能需要使用的消防安全設備，而不只是曾經看過或聽過。' },
+        { code: 'Q6', text: '即使在緊張、資訊不完整或主管不在場時，我仍知道自己應該如何判斷與行動。' },
       ],
     },
     {
-      title: '第三層：通報文化與團隊協作（避難互信）',
+      title: '三、團隊接軌',
       questions: [
-        { code: 'Q7', text: '當我提出火災風險疑慮（如電線老化、防火門無法閉合）時，單位會立即採取行動改善，我的意見受到高度重視。' },
-        { code: 'Q8', text: '組織對消防安全的重視與推動，讓我深刻體會到守護自己與同事的生命安全是我的重要責任。' },
-        { code: 'Q9', text: '我的同事們日常皆具備良好的防火意識，不會在禁菸區吸菸、不亂接延長線，並能相互提醒違規。' },
-        { code: 'Q10', text: '在面對火災警報響起或突發煙熱威脅時，我清楚知道身邊同仁能互相照應、配合完成疏散與清點。' },
+        { code: 'Q7', text: '發生火災時，我知道誰負責確認、通報、滅火、疏散及人員清點，而且彼此能夠銜接。' },
+        { code: 'Q8', text: '當第一個人發現異常時，我們有辦法讓需要知道的人迅速取得正確資訊。' },
+        { code: 'Q9', text: '如果原本負責的人不在場，我們仍有人可以接手重要的消防應變任務。' },
       ],
     },
     {
-      title: '第四層：實戰演練與持續改善（能力演進）',
+      title: '四、組織韌性',
       questions: [
-        { code: 'Q11', text: '在過去的六個月內，單位曾針對消防演練過程或逃生計畫進行檢討，明確點出我們可以改進的應變盲點。' },
-        { code: 'Q12', text: '在過去一年裡，我參與的消防演習不是「走形式的腳本演戲」，而是讓我真正學會了判斷火場情境與自救的新技能。' },
+        { code: 'Q10', text: '我們的消防演練會測試真實可能發生的問題，而不只是按照既定流程完成演練。' },
+        { code: 'Q11', text: '演練、誤報、設備異常或實際事件後，我們會找出「哪裡可能做錯」，並真正改善。' },
+        { code: 'Q12', text: '過去一年，我曾接受足以讓我重新記起並實際做出正確消防應變的訓練或測驗。' },
       ],
     },
   ];
@@ -293,7 +293,6 @@
   // step 0 = 說明頁, 1~4 = 題目層, 5 = 確認頁
   const TOTAL_STEPS = LAYERS.length + 2;
   let currentStep = 0;
-  let name = '';
   let unitName = '';
   const answers = {}; // { Q1: 3, Q2: 5, ... }
 
@@ -328,20 +327,13 @@
         ${LEGEND.map((l, i) => `<span>${i + 1} = ${l}</span>`).join('')}
       </div>
 
-      <label class="required" for="nameInput">姓名</label>
-      <input type="text" id="nameInput" placeholder="請輸入您的姓名" value="${name}">
+      <p style="text-align:center;font-size:12.5px;color:var(--muted);margin-bottom:20px;">本問卷採不記名方式進行，請依實際狀況誠實作答。</p>
 
       <div class="btn-row">
         <button class="btn-primary" id="startBtn" style="flex:1">開始作答</button>
       </div>
     `;
     document.getElementById('startBtn').addEventListener('click', () => {
-      const val = document.getElementById('nameInput').value.trim();
-      if (!val) {
-        showMessage('請先填寫姓名', 'error');
-        return;
-      }
-      name = val;
       hideMessage();
       currentStep = 1;
       render();
@@ -407,7 +399,6 @@
     contentEl.innerHTML = `
       <div class="layer-title">確認作答結果</div>
       <table class="review-table">
-        <tr><th>姓名</th><td>${name}</td></tr>
         ${allQuestions.map(q => `
           <tr><th>${q.code}．${q.text}</th><td class="review-score">${answers[q.code]}</td></tr>
         `).join('')}
@@ -432,7 +423,7 @@
     submitBtn.textContent = '送出中...';
     hideMessage();
 
-    const payload = { id: customerId, name, ...answers };
+    const payload = { id: customerId, ...answers };
 
     try {
       const res = await fetch(`${API_BASE_URL}/api/submit_result.php`, {
