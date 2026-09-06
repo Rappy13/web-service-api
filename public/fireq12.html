@@ -116,6 +116,35 @@
   }
   input[type="text"]:focus { border-color: var(--primary); }
 
+  /* ---- 基本資料 ---- */
+  .field-group {
+    margin-bottom: 20px;
+  }
+  .field-group.unanswered label {
+    color: var(--error);
+  }
+  .yesno-options {
+    display: flex;
+    gap: 10px;
+  }
+  .yesno-btn {
+    padding: 10px 28px;
+    border-radius: 8px;
+    border: 2px solid var(--border);
+    cursor: pointer;
+    user-select: none;
+    font-size: 14px;
+    font-weight: 600;
+    background: #fff;
+    transition: all .15s;
+  }
+  .yesno-btn:hover { border-color: var(--primary); }
+  .yesno-btn.selected {
+    background: var(--primary);
+    border-color: var(--primary);
+    color: #fff;
+  }
+
   /* ---- 題目層 ---- */
   .layer-title {
     font-size: 17px;
@@ -255,6 +284,18 @@
 
   const LEGEND = ['非常不同意', '不同意', '普通/無意見', '同意', '非常同意'];
 
+  const PROFILE_FIELDS = [
+    { key: 'years_of_service', label: '年資', type: 'text', placeholder: '例如：3年' },
+    { key: 'position', label: '職務', type: 'text', placeholder: '請輸入您的職務' },
+    { key: 'is_fire_brigade_member', label: '是否為自衛消防編組成員', type: 'yesno' },
+    { key: 'has_fire_training', label: '是否接受過消防訓練', type: 'yesno' },
+    { key: 'last_training_time', label: '最近一次訓練時間', type: 'text', placeholder: '例如：2026年3月，若尚未受訓請填「尚未」' },
+    { key: 'used_extinguisher', label: '是否實際操作過滅火器', type: 'yesno' },
+    { key: 'joined_tabletop_drill', label: '是否參與過桌面演練', type: 'yesno' },
+    { key: 'joined_live_drill', label: '是否參加過實兵演練', type: 'yesno' },
+    { key: 'experienced_real_fire', label: '是否曾遇過真實火警', type: 'yesno' },
+  ];
+
   const LAYERS = [
     {
       title: '一、基本清楚',
@@ -290,10 +331,11 @@
     },
   ];
 
-  // step 0 = 說明頁, 1~4 = 題目層, 5 = 確認頁
-  const TOTAL_STEPS = LAYERS.length + 2;
+  // step 0 = 說明頁, 1 = 基本資料, 2~(LAYERS.length+1) = 題目層, 最後 = 確認頁
+  const TOTAL_STEPS = LAYERS.length + 3;
   let currentStep = 0;
   let unitName = '';
+  const profile = {}; // { years_of_service: '3年', is_fire_brigade_member: '是', ... }
   const answers = {}; // { Q1: 3, Q2: 5, ... }
 
   const contentEl = document.getElementById('content');
@@ -305,8 +347,10 @@
     progressFill.style.width = `${(currentStep / (TOTAL_STEPS - 1)) * 100}%`;
     if (currentStep === 0) {
       stepLabel.textContent = '說明頁';
-    } else if (currentStep <= LAYERS.length) {
-      stepLabel.textContent = `第 ${currentStep} / ${LAYERS.length} 層`;
+    } else if (currentStep === 1) {
+      stepLabel.textContent = '基本資料';
+    } else if (currentStep <= LAYERS.length + 1) {
+      stepLabel.textContent = `第 ${currentStep - 1} / ${LAYERS.length} 層`;
     } else {
       stepLabel.textContent = '確認送出';
     }
@@ -336,6 +380,73 @@
     document.getElementById('startBtn').addEventListener('click', () => {
       hideMessage();
       currentStep = 1;
+      render();
+    });
+  }
+
+  function renderProfile() {
+    contentEl.innerHTML = `
+      <div class="layer-title">基本資料</div>
+      ${PROFILE_FIELDS.map(f => {
+        if (f.type === 'text') {
+          return `
+            <div class="field-group" data-key="${f.key}">
+              <label class="required">${f.label}</label>
+              <input type="text" class="profile-text" data-key="${f.key}" placeholder="${f.placeholder || ''}" value="${profile[f.key] || ''}">
+            </div>
+          `;
+        }
+        return `
+          <div class="field-group" data-key="${f.key}">
+            <label class="required">${f.label}</label>
+            <div class="yesno-options">
+              <div class="yesno-btn ${profile[f.key] === '是' ? 'selected' : ''}" data-key="${f.key}" data-value="是">是</div>
+              <div class="yesno-btn ${profile[f.key] === '否' ? 'selected' : ''}" data-key="${f.key}" data-value="否">否</div>
+            </div>
+          </div>
+        `;
+      }).join('')}
+      <div class="btn-row">
+        <button class="btn-secondary" id="prevBtn">上一步</button>
+        <button class="btn-primary" id="nextBtn">下一步</button>
+      </div>
+    `;
+
+    contentEl.querySelectorAll('.profile-text').forEach(el => {
+      el.addEventListener('input', () => {
+        profile[el.dataset.key] = el.value;
+        contentEl.querySelector(`.field-group[data-key="${el.dataset.key}"]`).classList.remove('unanswered');
+        hideMessage();
+      });
+    });
+
+    contentEl.querySelectorAll('.yesno-btn').forEach(el => {
+      el.addEventListener('click', () => {
+        const key = el.dataset.key;
+        profile[key] = el.dataset.value;
+        contentEl.querySelectorAll(`.yesno-btn[data-key="${key}"]`).forEach(b => b.classList.remove('selected'));
+        el.classList.add('selected');
+        contentEl.querySelector(`.field-group[data-key="${key}"]`).classList.remove('unanswered');
+        hideMessage();
+      });
+    });
+
+    document.getElementById('prevBtn').addEventListener('click', () => {
+      currentStep -= 1;
+      render();
+    });
+
+    document.getElementById('nextBtn').addEventListener('click', () => {
+      const missing = PROFILE_FIELDS.filter(f => !profile[f.key] || String(profile[f.key]).trim() === '');
+      if (missing.length > 0) {
+        missing.forEach(f => {
+          contentEl.querySelector(`.field-group[data-key="${f.key}"]`).classList.add('unanswered');
+        });
+        showMessage('請完成所有必填欄位', 'error');
+        return;
+      }
+      hideMessage();
+      currentStep += 1;
       render();
     });
   }
@@ -397,7 +508,13 @@
   function renderReview() {
     const allQuestions = LAYERS.flatMap(l => l.questions);
     contentEl.innerHTML = `
-      <div class="layer-title">確認作答結果</div>
+      <div class="layer-title">基本資料</div>
+      <table class="review-table">
+        ${PROFILE_FIELDS.map(f => `
+          <tr><th>${f.label}</th><td class="review-score">${profile[f.key]}</td></tr>
+        `).join('')}
+      </table>
+      <div class="layer-title" style="margin-top:24px;">確認作答結果</div>
       <table class="review-table">
         ${allQuestions.map(q => `
           <tr><th>${q.code}．${q.text}</th><td class="review-score">${answers[q.code]}</td></tr>
@@ -423,7 +540,7 @@
     submitBtn.textContent = '送出中...';
     hideMessage();
 
-    const payload = { id: customerId, ...answers };
+    const payload = { id: customerId, ...profile, ...answers };
 
     try {
       const res = await fetch(`${API_BASE_URL}/api/submit_result.php`, {
@@ -462,8 +579,10 @@
     updateProgress();
     if (currentStep === 0) {
       renderIntro();
-    } else if (currentStep <= LAYERS.length) {
-      renderLayer(currentStep - 1);
+    } else if (currentStep === 1) {
+      renderProfile();
+    } else if (currentStep <= LAYERS.length + 1) {
+      renderLayer(currentStep - 2);
     } else {
       renderReview();
     }
