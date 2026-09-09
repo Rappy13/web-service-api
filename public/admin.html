@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>後台管理</title>
+<style>
+  :root {
+    --primary: #4f46e5;
+    --primary-dark: #4338ca;
+    --border: #e5e7eb;
+    --bg: #f3f4f6;
+    --text: #111827;
+    --muted: #6b7280;
+    --error: #dc2626;
+    --success: #16a34a;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: "Noto Sans TC", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    background: var(--bg);
+    color: var(--text);
+  }
+
+  /* ---- 登入畫面 ---- */
+  .login-wrap {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+  }
+  .login-card {
+    background: #fff;
+    width: 100%;
+    max-width: 380px;
+    border-radius: 12px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+    padding: 32px 28px;
+  }
+  .login-card h1 {
+    font-size: 20px;
+    margin: 0 0 24px;
+    text-align: center;
+  }
+  .login-card label {
+    display: block;
+    font-size: 14px;
+    font-weight: 600;
+    color: #374151;
+    margin-bottom: 6px;
+  }
+  .login-card input {
+    width: 100%;
+    padding: 10px 12px;
+    font-size: 15px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    margin-bottom: 18px;
+    outline: none;
+  }
+  .login-card input:focus { border-color: var(--primary); }
+
+  /* ---- 主畫面（清單/詳情共用） ---- */
+  .app-wrap {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 24px;
+  }
+  .header-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  .header-row h1 { font-size: 20px; margin: 0; }
+  .back-link {
+    font-size: 13px;
+    color: var(--primary);
+    text-decoration: none;
+    cursor: pointer;
+  }
+  .back-link:hover { text-decoration: underline; }
+
+  button {
+    font-family: inherit;
+    cursor: pointer;
+  }
+  .btn-primary {
+    width: 100%;
+    padding: 12px;
+    font-size: 15px;
+    font-weight: 600;
+    color: #fff;
+    background: var(--primary);
+    border: none;
+    border-radius: 8px;
+  }
+  .btn-primary:hover { background: var(--primary-dark); }
+  .btn-primary:disabled { background: #9ca3af; cursor: not-allowed; }
+  .logout-btn {
+    padding: 8px 16px;
+    font-size: 13px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: #fff;
+    color: var(--muted);
+  }
+  .logout-btn:hover { background: #f9fafb; }
+
+  .card {
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.06);
+    padding: 0;
+    overflow: hidden;
+    margin-bottom: 20px;
+  }
+  .card.padded { padding: 24px; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+  th, td {
+    text-align: left;
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+  }
+  th { background: #f9fafb; color: var(--muted); font-weight: 600; font-size: 12.5px; }
+  tbody tr:last-child td { border-bottom: none; }
+  .clickable-row { cursor: pointer; transition: background .1s; }
+  .clickable-row:hover { background: #f5f5ff; }
+  .id-cell { font-weight: 700; color: var(--primary); font-family: monospace; }
+  .table-scroll { overflow-x: auto; }
+
+  .empty-state, .loading-state, .error-state, #loginMessage {
+    padding: 30px;
+    text-align: center;
+    color: var(--muted);
+  }
+  .error-state, #loginMessage.error { color: var(--error); }
+  #loginMessage { padding: 0; margin-top: 14px; font-size: 14px; display: none; }
+
+  /* ---- 客戶詳情：資訊卡 ---- */
+  .customer-header h1 { font-size: 20px; margin: 0 0 4px; }
+  .customer-id { font-family: monospace; font-size: 13px; color: var(--primary); font-weight: 700; }
+  .info-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 14px;
+    margin-top: 16px;
+  }
+  .info-item .label { font-size: 12px; color: var(--muted); margin-bottom: 2px; }
+  .info-item .value { font-size: 14px; font-weight: 600; }
+
+  .section-title {
+    font-size: 16px;
+    font-weight: 700;
+    margin: 0 0 16px;
+    border-left: 4px solid var(--primary);
+    padding-left: 10px;
+  }
+  .response-count { font-size: 12.5px; color: var(--muted); font-weight: 400; margin-left: 6px; }
+
+  .layer-avg-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 14px;
+  }
+  .layer-avg-card {
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px;
+  }
+  .layer-avg-card .layer-name { font-size: 13px; color: var(--muted); margin-bottom: 8px; }
+  .layer-avg-card .layer-score { font-size: 28px; font-weight: 700; color: var(--primary-dark); }
+  .layer-avg-card .layer-score .unit { font-size: 14px; font-weight: 400; color: var(--muted); }
+</style>
+</head>
+<body>
+
+<div id="root"></div>
+
+<script>
+  const API_BASE_URL = 'https://web-service-api-ru6y.onrender.com';
+  const root = document.getElementById('root');
+
+  const RECORD_FIELD_LABELS = {
+    years_of_service: '年資',
+    position: '職務',
+    is_fire_brigade_member: '自衛消防編組成員',
+    has_fire_training: '接受過消防訓練',
+    last_training_time: '最近一次訓練時間',
+    used_extinguisher: '操作過滅火器',
+    joined_tabletop_drill: '參與過桌面演練',
+    joined_live_drill: '參加過實兵演練',
+    experienced_real_fire: '曾遇過真實火警',
+    Q1: 'Q1', Q2: 'Q2', Q3: 'Q3', Q4: 'Q4', Q5: 'Q5', Q6: 'Q6',
+    Q7: 'Q7', Q8: 'Q8', Q9: 'Q9', Q10: 'Q10', Q11: 'Q11', Q12: 'Q12',
+  };
+
+  function escapeHtml(str) {
+    if (str === null || str === undefined || str === '') return '-';
+    return String(str).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+
+  // ============ 登入畫面 ============
+  function renderLogin() {
+    root.innerHTML = `
+      <div class="login-wrap">
+        <div class="login-card">
+          <h1>後台登入</h1>
+          <form id="loginForm">
+            <label for="username">帳號</label>
+            <input type="text" id="username" autocomplete="username" required>
+            <label for="password">密碼</label>
+            <input type="password" id="password" autocomplete="current-password" required>
+            <button type="submit" class="btn-primary" id="loginBtn">登入</button>
+          </form>
+          <div id="loginMessage"></div>
+        </div>
+      </div>
+    `;
+
+    document.getElementById('loginForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const msgEl = document.getElementById('loginMessage');
+      const btn = document.getElementById('loginBtn');
+      msgEl.style.display = 'none';
+      btn.disabled = true;
+      btn.textContent = '登入中...';
+
+      const payload = {
+        username: document.getElementById('username').value.trim(),
+        password: document.getElementById('password').value,
+      };
+
+      try {
+        const res = await fetch(`${API_BASE_URL}/api/admin_login.php`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        const data = await res.json();
+
+        if (data.success) {
+          route();
+        } else {
+          msgEl.className = 'error';
+          msgEl.textContent = data.message || '登入失敗';
+          msgEl.style.display = 'block';
+          btn.disabled = false;
+          btn.textContent = '登入';
+        }
+      } catch (err) {
+        msgEl.className = 'error';
+        msgEl.textContent = '無法連線至伺服器，請稍後再試';
+        msgEl.style.display = 'block';
+        btn.disabled = false;
+        btn.textContent = '登入';
+      }
+    });
+  }
+
+  async function logout() {
+    try {
+      await fetch(`${API_BASE_URL}/api/admin_logout.php`, { method: 'POST' });
+    } catch (err) {
+      // 忽略錯誤，仍導回登入畫面
+    }
+    history.replaceState(null, '', location.pathname + location.search);
+    renderLogin();
+  }
+
+  // ============ 共用：帶登入檢查的fetch ============
+  // 回傳data，如果是401會直接切到登入畫面並回傳null
+  async function apiGet(path) {
+    const res = await fetch(`${API_BASE_URL}${path}`);
+    if (res.status === 401) {
+      renderLogin();
+      return null;
+    }
+    return res.json();
+  }
+
+  // ============ 第一層：客戶清單 ============
+  async function renderDashboard() {
+    root.innerHTML = `
+      <div class="app-wrap">
+        <div class="header-row">
+          <h1>客戶清單</h1>
+          <button class="logout-btn" id="logoutBtn">登出</button>
+        </div>
+        <div class="card"><div id="dashContent" class="loading-state">載入中...</div></div>
+      </div>
+    `;
+    document.getElementById('logoutBtn').addEventListener('click', logout);
+
+    const dashContent = document.getElementById('dashContent');
+    const data = await apiGet('/api/admin_customers.php');
+    if (data === null) return; // 已切到登入畫面
+
+    if (!data.success) {
+      dashContent.className = 'error-state';
+      dashContent.textContent = data.message || '載入失敗';
+      return;
+    }
+
+    if (data.customers.length === 0) {
+      dashContent.className = 'empty-state';
+      dashContent.textContent = '目前尚無客戶資料';
+      return;
+    }
+
+    dashContent.className = '';
+    dashContent.innerHTML = `
+      <div class="table-scroll">
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th><th>單位名稱</th><th>Email</th><th>電話</th><th>建立時間</th><th>過期時間</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${data.customers.map(c => `
+              <tr class="clickable-row" data-id="${escapeHtml(c.id)}">
+                <td class="id-cell">${escapeHtml(c.id)}</td>
+                <td>${escapeHtml(c.unit_name)}</td>
+                <td>${escapeHtml(c.email)}</td>
+                <td>${escapeHtml(c.phone)}</td>
+                <td>${escapeHtml(c.created_at)}</td>
+                <td>${escapeHtml(c.expires_at)}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+    `;
+
+    dashContent.querySelectorAll('.clickable-row').forEach(row => {
+      row.addEventListener('click', () => {
+        location.hash = `customer=${encodeURIComponent(row.dataset.id)}`;
+      });
+    });
+  }
+
+  // ============ 第二層：客戶詳情 ============
+  async function renderDetail(customerId) {
+    root.innerHTML = `
+      <div class="app-wrap">
+        <div class="header-row">
+          <a class="back-link" href="#" id="backLink">← 返回客戶清單</a>
+          <button class="logout-btn" id="logoutBtn">登出</button>
+        </div>
+        <div id="detailContent" class="loading-state">載入中...</div>
+      </div>
+    `;
+    document.getElementById('logoutBtn').addEventListener('click', logout);
+    document.getElementById('backLink').addEventListener('click', (e) => {
+      e.preventDefault();
+      location.hash = '';
+    });
+
+    const detailContent = document.getElementById('detailContent');
+
+    if (!customerId) {
+      detailContent.className = 'error-state';
+      detailContent.textContent = '網址缺少客戶ID參數';
+      return;
+    }
+
+    const data = await apiGet(`/api/admin_customer_detail.php?id=${encodeURIComponent(customerId)}`);
+    if (data === null) return; // 已切到登入畫面
+
+    if (!data.success) {
+      detailContent.className = 'error-state';
+      detailContent.textContent = data.message || '載入失敗';
+      return;
+    }
+
+    const c = data.customer;
+    const fieldKeys = Object.keys(RECORD_FIELD_LABELS);
+
+    detailContent.className = '';
+    detailContent.innerHTML = `
+      <div class="card padded customer-header">
+        <h1>${escapeHtml(c.unit_name)}</h1>
+        <div class="customer-id">${escapeHtml(c.id)}</div>
+        <div class="info-grid">
+          <div class="info-item"><div class="label">Email</div><div class="value">${escapeHtml(c.email)}</div></div>
+          <div class="info-item"><div class="label">電話</div><div class="value">${escapeHtml(c.phone)}</div></div>
+          <div class="info-item"><div class="label">建立時間</div><div class="value">${escapeHtml(c.created_at)}</div></div>
+          <div class="info-item"><div class="label">過期時間</div><div class="value">${escapeHtml(c.expires_at)}</div></div>
+        </div>
+      </div>
+
+      <div class="card padded">
+        <div class="section-title">各層平均分數<span class="response-count">（共 ${data.response_count} 筆作答）</span></div>
+        <div class="layer-avg-grid">
+          ${data.layer_averages.map(l => `
+            <div class="layer-avg-card">
+              <div class="layer-name">${escapeHtml(l.title)}（${l.questions.join('、')}）</div>
+              <div class="layer-score">${l.average !== null ? l.average : '-'}${l.average !== null ? '<span class="unit"> / 5</span>' : ''}</div>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+
+      <div class="card padded">
+        <div class="section-title">逐筆作答結果<span class="response-count">（依填寫時間排序）</span></div>
+        ${data.records.length === 0 ? `
+          <div class="empty-state" style="padding:20px 0;">目前尚無作答紀錄</div>
+        ` : `
+          <div class="table-scroll">
+            <table>
+              <thead><tr>${fieldKeys.map(k => `<th>${RECORD_FIELD_LABELS[k]}</th>`).join('')}</tr></thead>
+              <tbody>
+                ${data.records.map(r => `<tr>${fieldKeys.map(k => `<td>${escapeHtml(r[k])}</td>`).join('')}</tr>`).join('')}
+              </tbody>
+            </table>
+          </div>
+        `}
+      </div>
+    `;
+  }
+
+  // ============ 路由 ============
+  function route() {
+    const hash = location.hash.replace(/^#/, '');
+    if (hash.startsWith('customer=')) {
+      renderDetail(decodeURIComponent(hash.slice('customer='.length)));
+    } else {
+      renderDashboard();
+    }
+  }
+
+  window.addEventListener('hashchange', route);
+  route();
+</script>
+
+</body>
+</html>
