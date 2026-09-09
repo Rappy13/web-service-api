@@ -187,36 +187,19 @@
   .layer-avg-card .q-code { color: var(--muted); }
   .layer-avg-card .q-score { font-weight: 700; color: var(--primary-dark); font-size: 15px; }
 
-  /* ---- 敬業度分析 ---- */
-  .engagement-summary {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 24px;
-    align-items: center;
-    margin-bottom: 16px;
-  }
-  .engagement-metric .label { font-size: 12px; color: var(--muted); margin-bottom: 2px; }
-  .engagement-metric .value { font-size: 24px; font-weight: 700; }
-  .badge {
-    display: inline-block;
-    padding: 6px 14px;
-    border-radius: 999px;
-    font-size: 13px;
-    font-weight: 700;
-  }
-  .badge-engaged { background: #dcfce7; color: #15803d; }
-  .badge-not_engaged { background: #fef9c3; color: #a16207; }
-  .badge-disengaged { background: #fee2e2; color: #b91c1c; }
-  .badge-watch { background: #f3f4f6; color: var(--muted); }
   .badge-sm {
     display: inline-block;
     padding: 2px 8px;
     border-radius: 999px;
-    font-size: 11.5px;
+    font-size: 11px;
     font-weight: 700;
+    margin-left: 8px;
+    white-space: nowrap;
   }
-  .badge-sm.yes { background: #dcfce7; color: #15803d; }
-  .badge-sm.no { background: #f3f4f6; color: var(--muted); }
+  .badge-sm.engaged { background: #dcfce7; color: #15803d; }
+  .badge-sm.not_engaged { background: #fef9c3; color: #a16207; }
+  .badge-sm.disengaged { background: #fee2e2; color: #b91c1c; }
+  .badge-sm.watch { background: #f3f4f6; color: var(--muted); }
 </style>
 </head>
 <body>
@@ -251,6 +234,21 @@
   function escapeHtml(str) {
     if (str === null || str === undefined || str === '') return '-';
     return String(str).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+
+  // 依蓋洛普Q12方法論的門檻，把單一分數（每題平均或個人平均）分類為敬業/漠不關心/主動消極
+  function classifyScore(score) {
+    if (score === null || score === undefined) return null;
+    if (score >= 4.5) return { label: '敬業', level: 'engaged' };
+    if (score < 3.2) return { label: '主動消極', level: 'disengaged' };
+    if (score >= 3.3 && score <= 4.4) return { label: '漠不關心', level: 'not_engaged' };
+    return { label: '灰色地帶', level: 'watch' };
+  }
+
+  function badgeHtml(score) {
+    const c = classifyScore(score);
+    if (!c) return '';
+    return `<span class="badge-sm ${c.level}">${c.label}</span>`;
   }
 
   // ============ 登入畫面 ============
@@ -444,33 +442,8 @@
       </div>
 
       <div class="card padded">
-        <div class="section-title">整體敬業度分析<span class="response-count">（依蓋洛普Q12方法論計算）</span></div>
-        ${data.engagement === null ? `
-          <div class="empty-state" style="padding:10px 0;">目前尚無作答紀錄，無法計算</div>
-        ` : `
-          <div class="engagement-summary">
-            <span class="badge badge-${data.engagement.level}">${escapeHtml(data.engagement.label)}</span>
-            <div class="engagement-metric">
-              <div class="label">整體平均分</div>
-              <div class="value">${data.engagement.overall_mean}</div>
-            </div>
-            <div class="engagement-metric">
-              <div class="label">Top Box佔比（給5分的比例）</div>
-              <div class="value">${data.engagement.top_box_pct}%</div>
-            </div>
-            <div class="engagement-metric">
-              <div class="label">1、2分（負面評價）次數</div>
-              <div class="value">${data.engagement.low_box_count}</div>
-            </div>
-          </div>
-          <p style="font-size:12.5px;color:var(--muted);line-height:1.7;margin:0;">
-            判定標準：整體平均≥4.5分且Top Box佔比≥60% → 敬業；平均落在3.3～4.4分 → 漠不關心；平均低於3.2分 → 主動消極；其餘為灰色地帶，建議持續觀察。
-          </p>
-        `}
-      </div>
-
-      <div class="card padded">
         <div class="section-title">各層平均分數<span class="response-count">（共 ${data.response_count} 筆作答）</span></div>
+        <p style="font-size:12px;color:var(--muted);margin:-10px 0 16px;">分類標準：平均≥4.5敬業、3.3～4.4漠不關心、低於3.2主動消極，其餘為灰色地帶</p>
         <div class="layer-avg-grid">
           ${data.layer_averages.map(l => `
             <div class="layer-avg-card">
@@ -478,7 +451,7 @@
               ${l.questions.map(q => `
                 <div class="q-row">
                   <span class="q-code">${q} - ${QUESTION_MEANINGS[q]}</span>
-                  <span class="q-score">${data.question_averages[q] !== null ? data.question_averages[q] : '-'}</span>
+                  <span class="q-score">${data.question_averages[q] !== null ? data.question_averages[q] : '-'}${badgeHtml(data.question_averages[q])}</span>
                 </div>
               `).join('')}
             </div>
@@ -493,11 +466,11 @@
         ` : `
           <div class="table-scroll">
             <table>
-              <thead><tr><th>個人敬業傾向</th>${fieldKeys.map(k => `<th>${RECORD_FIELD_LABELS[k]}</th>`).join('')}</tr></thead>
+              <thead><tr><th>個人平均分數</th>${fieldKeys.map(k => `<th>${RECORD_FIELD_LABELS[k]}</th>`).join('')}</tr></thead>
               <tbody>
                 ${data.records.map(r => `
                   <tr>
-                    <td><span class="badge-sm ${r.engaged_profile ? 'yes' : 'no'}">${r.engaged_profile ? '高敬業傾向' : '一般'}</span></td>
+                    <td><strong style="color:var(--primary-dark);">${r.personal_average}</strong>${badgeHtml(r.personal_average)}</td>
                     ${fieldKeys.map(k => `<td>${escapeHtml(r[k])}</td>`).join('')}
                   </tr>
                 `).join('')}
