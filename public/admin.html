@@ -196,6 +196,13 @@
   const API_BASE_URL = 'https://web-service-api-ru6y.onrender.com';
   const root = document.getElementById('root');
 
+  const QUESTION_MEANINGS = {
+    Q1: '第一反應', Q2: '行動授權', Q3: '逃生／待援',
+    Q4: '撤退判斷', Q5: '實際技能', Q6: '壓力下決策',
+    Q7: '分工', Q8: '資訊傳遞', Q9: '備援能力',
+    Q10: '演練品質', Q11: '回饋改善', Q12: '提取與維持',
+  };
+
   const RECORD_FIELD_LABELS = {
     years_of_service: '年資',
     position: '職務',
@@ -413,7 +420,7 @@
               <div class="layer-name">${escapeHtml(l.title)}</div>
               ${l.questions.map(q => `
                 <div class="q-row">
-                  <span class="q-code">${q}</span>
+                  <span class="q-code">${q} - ${QUESTION_MEANINGS[q]}</span>
                   <span class="q-score">${data.question_averages[q] !== null ? data.question_averages[q] : '-'}</span>
                 </div>
               `).join('')}
