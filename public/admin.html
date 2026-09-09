@@ -174,9 +174,18 @@
     border-radius: 10px;
     padding: 16px;
   }
-  .layer-avg-card .layer-name { font-size: 13px; color: var(--muted); margin-bottom: 8px; }
-  .layer-avg-card .layer-score { font-size: 28px; font-weight: 700; color: var(--primary-dark); }
-  .layer-avg-card .layer-score .unit { font-size: 14px; font-weight: 400; color: var(--muted); }
+  .layer-avg-card .layer-name { font-size: 13px; color: var(--muted); margin-bottom: 10px; font-weight: 600; }
+  .layer-avg-card .q-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 6px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 13.5px;
+  }
+  .layer-avg-card .q-row:last-child { border-bottom: none; }
+  .layer-avg-card .q-code { color: var(--muted); }
+  .layer-avg-card .q-score { font-weight: 700; color: var(--primary-dark); font-size: 15px; }
 </style>
 </head>
 <body>
@@ -401,8 +410,13 @@
         <div class="layer-avg-grid">
           ${data.layer_averages.map(l => `
             <div class="layer-avg-card">
-              <div class="layer-name">${escapeHtml(l.title)}（${l.questions.join('、')}）</div>
-              <div class="layer-score">${l.average !== null ? l.average : '-'}${l.average !== null ? '<span class="unit"> / 5</span>' : ''}</div>
+              <div class="layer-name">${escapeHtml(l.title)}</div>
+              ${l.questions.map(q => `
+                <div class="q-row">
+                  <span class="q-code">${q}</span>
+                  <span class="q-score">${data.question_averages[q] !== null ? data.question_averages[q] : '-'}</span>
+                </div>
+              `).join('')}
             </div>
           `).join('')}
         </div>
