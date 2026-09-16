@@ -236,13 +236,12 @@
     return String(str).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   }
 
-  // 依蓋洛普Q12方法論的門檻，把單一分數（每題平均或個人平均）分類為敬業/漠不關心/主動消極
+  // 分類門檻：≥4.5主動積極、3.3~4.4消極被動、低於3.3漠不關心
   function classifyScore(score) {
     if (score === null || score === undefined) return null;
-    if (score >= 4.5) return { label: '敬業', level: 'engaged' };
-    if (score < 3.2) return { label: '主動消極', level: 'disengaged' };
-    if (score >= 3.3 && score <= 4.4) return { label: '漠不關心', level: 'not_engaged' };
-    return { label: '灰色地帶', level: 'watch' };
+    if (score >= 4.5) return { label: '主動積極', level: 'engaged' };
+    if (score >= 3.3) return { label: '消極被動', level: 'not_engaged' };
+    return { label: '漠不關心', level: 'disengaged' };
   }
 
   function badgeHtml(score) {
@@ -443,7 +442,7 @@
 
       <div class="card padded">
         <div class="section-title">各層平均分數<span class="response-count">（共 ${data.response_count} 筆作答）</span></div>
-        <p style="font-size:12px;color:var(--muted);margin:-10px 0 16px;">分類標準：平均≥4.5敬業、3.3～4.4漠不關心、低於3.2主動消極，其餘為灰色地帶</p>
+        <p style="font-size:12px;color:var(--muted);margin:-10px 0 16px;">分類標準：平均≥4.5主動積極、3.3～4.4消極被動、低於3.3漠不關心</p>
         <div class="layer-avg-grid">
           ${data.layer_averages.map(l => `
             <div class="layer-avg-card">
