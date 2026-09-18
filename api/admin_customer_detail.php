@@ -139,7 +139,7 @@ try {
     ];
     $q12 = analyze_result_table($pdo, 'result', $id, $Q12_LAYERS, 'Q', 12, $q12ExtraColumns);
     $q16 = $q16Started
-        ? analyze_result_table($pdo, 'result_q16', $id, $Q16_LAYERS, 'FR', 16)
+        ? analyze_result_table($pdo, 'result_q16', $id, $Q16_LAYERS, 'FR', 16, $q12ExtraColumns)
         : null;
 
     echo json_encode([
