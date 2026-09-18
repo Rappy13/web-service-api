@@ -703,23 +703,14 @@
     const c = data.customer;
 
     if (!data.q16_started) {
-      // 尚未生成Q16
-      if (!data.q12_expired) {
-        q16Area.innerHTML = `
-          <div class="q16-generate-box">
-            <p>需等Q12作答期限截止後，才能生成Q16量表。</p>
-            <button class="btn-primary" disabled>生成Q16量表</button>
-          </div>
-        `;
-      } else {
-        q16Area.innerHTML = `
-          <div class="q16-generate-box">
-            <p>Q12作答期限已截止，可以生成Q16量表（使用同一組ID，作答期限為生成後3天）。</p>
-            <button class="btn-primary" id="generateQ16Btn">生成Q16量表</button>
-          </div>
-        `;
-        document.getElementById('generateQ16Btn').addEventListener('click', () => generateQ16(customerId));
-      }
+      // 尚未生成Q16：不論Q12是否還在有效期限內，都可以直接生成
+      q16Area.innerHTML = `
+        <div class="q16-generate-box">
+          <p>可以生成Q16量表（使用同一組ID，作答期限為生成後3天）。</p>
+          <button class="btn-primary" id="generateQ16Btn">生成Q16量表</button>
+        </div>
+      `;
+      document.getElementById('generateQ16Btn').addEventListener('click', () => generateQ16(customerId));
       return;
     }
 
