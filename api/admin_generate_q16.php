@@ -6,8 +6,8 @@
  *
  * 防呆規則：
  *   1. 該ID必須存在
- *   2. Q12的作答期限（customer.expires_at）必須已經過了，才能生成Q16
- *   3. 該ID的Q16必須「尚未生成過」（q16_started_at 必須是NULL），避免重複啟動
+ *   2. 該ID的Q16必須「尚未生成過」（q16_started_at 必須是NULL），避免重複啟動
+ *   （已移除「Q12必須先過期」的限制，現在Q12有效期限內也能直接生成Q16）
  *
  * 成功回傳: { "success": true, "id":..., "q16_started_at":..., "q16_expires_at":..., "survey_url":... }
  */
@@ -60,16 +60,7 @@ try {
         exit;
     }
 
-    // 檢查Q12的作答期限是否已過（拿DB當下時間跟expires_at比較，避免PHP/DB時區不一致）
-    $checkStmt = $pdo->prepare('SELECT (NOW() > expires_at) AS q12_expired FROM customer WHERE id = :id');
-    $checkStmt->execute(['id' => $id]);
-    $checkRow = $checkStmt->fetch();
-
-    if (!$checkRow['q12_expired']) {
-        http_response_code(400);
-        echo json_encode(['success' => false, 'message' => 'Q12的作答期限尚未截止，無法生成Q16量表'], JSON_UNESCAPED_UNICODE);
-        exit;
-    }
+    // 已移除「Q12必須先過期才能生成Q16」的限制，Q12有效期限內也能直接生成
 
     $updateStmt = $pdo->prepare(
         'UPDATE customer SET q16_started_at = NOW(), q16_expires_at = DATE_ADD(NOW(), INTERVAL 3 DAY) WHERE id = :id'
