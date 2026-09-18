@@ -63,6 +63,29 @@
   }
   .login-card input:focus { border-color: var(--primary); }
 
+  /* ---- 新增客戶表單 ---- */
+  #createForm label {
+    display: block;
+    font-size: 14px;
+    font-weight: 600;
+    color: #374151;
+    margin-bottom: 6px;
+    margin-top: 14px;
+  }
+  #createForm label:first-child { margin-top: 0; }
+  #createForm label.required::after { content: " *"; color: var(--error); }
+  #createForm input {
+    width: 100%;
+    padding: 10px 12px;
+    font-size: 15px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    outline: none;
+  }
+  #createForm input:focus { border-color: var(--primary); }
+  .btn-row { display: flex; gap: 12px; margin-top: 16px; }
+  #createForm .btn-row button { width: auto; padding: 10px 24px; }
+
   /* ---- 主畫面（清單/詳情共用） ---- */
   .app-wrap {
     max-width: 1100px;
@@ -424,14 +447,112 @@
       <div class="app-wrap">
         <div class="header-row">
           <h1>客戶清單</h1>
-          <button class="logout-btn" id="logoutBtn">登出</button>
+          <div style="display:flex;gap:10px;">
+            <button class="btn-primary" id="toggleCreateBtn" style="width:auto;padding:8px 16px;font-size:13px;">+ 新增客戶</button>
+            <button class="logout-btn" id="logoutBtn">登出</button>
+          </div>
+        </div>
+        <div class="card padded" id="createCard" style="display:none;">
+          <div class="section-title">新增客戶</div>
+          <form id="createForm">
+            <label class="required">單位名稱</label>
+            <input type="text" id="newUnitName" required>
+            <label>Email（選填）</label>
+            <input type="email" id="newEmail" placeholder="留空則不寄送問卷連結信">
+            <label>電話（選填）</label>
+            <input type="text" id="newPhone">
+            <div class="btn-row">
+              <button type="submit" class="btn-primary" id="createSubmitBtn">建立</button>
+            </div>
+          </form>
+          <div id="createMessage"></div>
         </div>
         <div class="card"><div id="dashContent" class="loading-state">載入中...</div></div>
       </div>
     `;
     document.getElementById('logoutBtn').addEventListener('click', logout);
 
+    document.getElementById('toggleCreateBtn').addEventListener('click', () => {
+      const createCard = document.getElementById('createCard');
+      createCard.style.display = createCard.style.display === 'none' ? 'block' : 'none';
+    });
+
+    document.getElementById('createForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const submitBtn = document.getElementById('createSubmitBtn');
+      const msgEl = document.getElementById('createMessage');
+      submitBtn.disabled = true;
+      submitBtn.textContent = '建立中...';
+      msgEl.innerHTML = '';
+
+      const payload = {
+        unit_name: document.getElementById('newUnitName').value.trim(),
+        email: document.getElementById('newEmail').value.trim(),
+        phone: document.getElementById('newPhone').value.trim(),
+      };
+
+      try {
+        const res = await fetch(`${API_BASE_URL}/api/admin_create_customer.php`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+
+        if (res.status === 401) {
+          renderLogin();
+          return;
+        }
+
+        const data = await res.json();
+
+        if (data.success) {
+          let headline;
+          if (data.reused) {
+            headline = '這組Email尚有未過期的問卷連結，以下為原本的連結：';
+          } else if (payload.email === '') {
+            headline = '建立成功！未提供Email，請手動複製下方連結給填答人員：';
+          } else if (data.email_sent) {
+            headline = '建立成功！問卷連結已寄送到填寫的Email。';
+          } else {
+            headline = '建立成功！Email寄送失敗，請手動複製下方連結給填答人員：';
+          }
+          msgEl.innerHTML = `
+            <div class="q16-link-box" style="margin-top:14px;">
+              <p style="margin:0 0 8px;font-size:13px;color:var(--success);font-weight:600;">${headline}</p>
+              <a href="${data.survey_url}" target="_blank" rel="noopener">${data.survey_url}</a>
+              <div class="q16-meta">過期時間：${data.expires_at}（GMT+8）</div>
+              <div id="newCustomerQrcode"></div>
+            </div>
+          `;
+          try {
+            const qr = qrcode(0, 'M');
+            qr.addData(data.survey_url);
+            qr.make();
+            document.getElementById('newCustomerQrcode').innerHTML = qr.createImgTag(4, 8);
+          } catch (qrErr) {
+            // QR產生失敗不影響連結本身的正確性
+          }
+          document.getElementById('createForm').reset();
+          loadCustomerTable(); // 重新載入清單，顯示剛建立的客戶
+        } else {
+          msgEl.innerHTML = `<p style="color:var(--error);font-size:13px;margin-top:10px;">${data.message || '建立失敗，請稍後再試'}</p>`;
+        }
+      } catch (err) {
+        msgEl.innerHTML = `<p style="color:var(--error);font-size:13px;margin-top:10px;">無法連線至伺服器，請稍後再試</p>`;
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = '建立';
+      }
+    });
+
+    await loadCustomerTable();
+  }
+
+  async function loadCustomerTable() {
     const dashContent = document.getElementById('dashContent');
+    dashContent.className = 'loading-state';
+    dashContent.textContent = '載入中...';
+
     const data = await apiGet('/api/admin_customers.php');
     if (data === null) return; // 已切到登入畫面
 
@@ -524,6 +645,7 @@
     }
 
     const c = data.customer;
+    const q12SurveyUrl = `${location.origin}/fireq12.html?id=${encodeURIComponent(c.id)}`;
 
     detailContent.className = '';
     detailContent.innerHTML = `
@@ -540,6 +662,11 @@
 
       <div class="card padded">
         <div class="section-title">安全 Q12</div>
+        <div class="q16-link-box">
+          <a href="${q12SurveyUrl}" target="_blank" rel="noopener">${q12SurveyUrl}</a>
+          <div class="q16-meta">過期時間：${escapeHtml(c.expires_at)}（GMT+8）</div>
+          <div id="q12qrcode"></div>
+        </div>
       </div>
       ${renderAnalysisSections(data.q12, QUESTION_MEANINGS, RECORD_FIELD_LABELS)}
 
@@ -551,6 +678,15 @@
     `;
 
     renderQ16Area(customerId, data);
+
+    try {
+      const qr = qrcode(0, 'M');
+      qr.addData(q12SurveyUrl);
+      qr.make();
+      document.getElementById('q12qrcode').innerHTML = qr.createImgTag(4, 8);
+    } catch (qrErr) {
+      // QR產生失敗不影響連結本身的正確性
+    }
   }
 
   function renderQ16Area(customerId, data) {
