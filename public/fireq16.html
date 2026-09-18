@@ -1,0 +1,356 @@
+
+
+Fireq16 · HTML
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>安全 Q16 深入分析量表</title>
+<style>
+  :root {
+    --primary: #dc2626;
+    --primary-dark: #b91c1c;
+    --border: #d1d5db;
+    --bg: #f3f4f6;
+    --text: #111827;
+    --muted: #6b7280;
+    --success: #16a34a;
+    --error: #dc2626;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: "Noto Sans TC", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    padding: 24px;
+  }
+  .wrap { max-width: 680px; margin: 0 auto; }
+  .card {
+    background: #fff;
+    border-radius: 14px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+    padding: 32px 28px;
+    margin-bottom: 16px;
+  }
+ 
+  .progress-track { height: 6px; background: #e5e7eb; border-radius: 999px; overflow: hidden; margin-bottom: 20px; }
+  .progress-fill { height: 100%; background: var(--primary); border-radius: 999px; transition: width .25s ease; }
+  .step-label { font-size: 13px; color: var(--muted); margin-bottom: 20px; }
+ 
+  h1 { font-size: 22px; margin: 0 0 6px; text-align: center; }
+  h2.subtitle { font-size: 15px; font-weight: 400; color: var(--muted); text-align: center; margin: 0 0 24px; }
+  .intro-section p { font-size: 14px; line-height: 1.8; color: #374151; margin: 0 0 20px; }
+  .scale-legend { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 24px; }
+  .scale-legend span {
+    background: #fef2f2; color: var(--primary-dark); font-size: 12px;
+    padding: 4px 10px; border-radius: 999px; border: 1px solid #fecaca;
+  }
+ 
+  .layer-title {
+    font-size: 17px; font-weight: 700; margin: 0 0 20px; color: var(--primary-dark);
+    border-left: 4px solid var(--primary); padding-left: 10px;
+  }
+  .question { margin-bottom: 26px; padding-bottom: 22px; border-bottom: 1px solid #f0f0f0; }
+  .question:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+  .question-code { font-size: 12px; font-weight: 700; color: var(--primary); margin-bottom: 4px; }
+  .question-text { font-size: 14.5px; line-height: 1.6; margin-bottom: 14px; }
+  .options { display: flex; gap: 10px; flex-wrap: wrap; }
+  .option-circle {
+    width: 46px; height: 46px; border-radius: 50%; border: 2px solid var(--border);
+    display: flex; align-items: center; justify-content: center; font-size: 18px;
+    cursor: pointer; user-select: none; transition: all .15s; background: #fff;
+  }
+  .option-circle:hover { border-color: var(--primary); }
+  .option-circle.selected { background: var(--primary); border-color: var(--primary); color: #fff; transform: scale(1.08); }
+  .option-hint { font-size: 11px; color: var(--muted); margin-top: 6px; }
+  .question.unanswered .question-text { color: var(--error); }
+ 
+  .review-table { width: 100%; border-collapse: collapse; font-size: 13.5px; margin-bottom: 10px; }
+  .review-table th, .review-table td { text-align: left; padding: 8px 6px; border-bottom: 1px solid #f0f0f0; }
+  .review-table th { color: var(--muted); font-weight: 600; width: 70%; }
+  .review-score { font-weight: 700; color: var(--primary-dark); text-align: center; }
+ 
+  .btn-row { display: flex; gap: 12px; margin-top: 24px; }
+  button { flex: 1; padding: 13px; font-size: 15px; font-weight: 600; border-radius: 8px; border: none; cursor: pointer; transition: background .15s, opacity .15s; }
+  .btn-primary { background: var(--primary); color: #fff; }
+  .btn-primary:hover { background: var(--primary-dark); }
+  .btn-primary:disabled { background: #9ca3af; cursor: not-allowed; }
+  .btn-secondary { background: #f3f4f6; color: var(--text); border: 1px solid var(--border); }
+  .btn-secondary:hover { background: #e5e7eb; }
+ 
+  #message { margin-top: 14px; font-size: 14px; text-align: center; display: none; }
+  #message.error { color: var(--error); display: block; }
+  #message.success { color: var(--success); display: block; font-weight: 600; }
+</style>
+</head>
+<body>
+ 
+<div class="wrap">
+  <div class="card">
+    <div class="progress-track"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
+    <div class="step-label" id="stepLabel"></div>
+    <div id="content"></div>
+    <div id="message"></div>
+  </div>
+</div>
+ 
+<script>
+  const API_BASE_URL = 'https://web-service-api-ru6y.onrender.com';
+ 
+  const urlParams = new URLSearchParams(window.location.search);
+  const customerId = urlParams.get('id') || '';
+ 
+  const LEGEND = ['非常不同意', '不同意', '普通/無意見', '同意', '非常同意'];
+ 
+  const LAYERS = [
+    {
+      title: '一、應變認知與個人準備',
+      questions: [
+        { code: 'FR1', text: '發現火災或異常煙熱時，我知道第一時間應採取的行動。' },
+        { code: 'FR2', text: '我知道如何通報火警、通知相關人員並啟動工作場所的應變程序。' },
+        { code: 'FR3', text: '我熟悉工作場所的主要與替代避難路徑，以及集合與清點方式。' },
+        { code: 'FR4', text: '我清楚自己在火災應變中的角色，並知道何時應以疏散與自身安全為優先。' },
+      ],
+    },
+    {
+      title: '二、管理支持與風險回應',
+      questions: [
+        { code: 'FR5', text: '當消防安全與工作效率發生衝突時，我的主管會優先考量安全。' },
+        { code: 'FR6', text: '當我提出消防安全疑慮時，單位會認真回應並追蹤處理。' },
+        { code: 'FR7', text: '單位提供我理解消防應變所需的資訊、指引與教育訓練。' },
+        { code: 'FR8', text: '單位支持我參與實作型消防訓練，並提供必要的時間與資源。' },
+      ],
+    },
+    {
+      title: '三、團隊安全行為與協作',
+      questions: [
+        { code: 'FR9', text: '我的同事會認真遵守消防安全規範，避免明顯增加火災風險的行為。' },
+        { code: 'FR10', text: '發現消防安全風險或不安全行為時，同事之間會彼此提醒。' },
+        { code: 'FR11', text: '火警或緊急狀況發生時，我知道同事能依角色配合完成疏散、通報與必要協助。' },
+        { code: 'FR12', text: '我相信同事會依既定程序回應火警，而不會輕忽警報或各自行動。' },
+      ],
+    },
+    {
+      title: '四、訓練演練與持續改善',
+      questions: [
+        { code: 'FR13', text: '消防教育訓練讓我更能完成工作場所要求的應變行動。' },
+        { code: 'FR14', text: '消防演練會反映實際工作場所可能發生的情境，而不只是照固定流程完成。' },
+        { code: 'FR15', text: '消防演練或事件後，單位會進行檢討並明確指出可改善的盲點。' },
+        { code: 'FR16', text: '對於演練或事件中發現的問題，單位會追蹤改善，並讓相關人員知道處理結果。' },
+      ],
+    },
+  ];
+ 
+  // step 0 = 說明頁, 1~(LAYERS.length) = 題目層, 最後 = 確認頁
+  const TOTAL_STEPS = LAYERS.length + 2;
+  let currentStep = 0;
+  let unitName = '';
+  const answers = {}; // { FR1: 3, FR2: 5, ... }
+ 
+  const contentEl = document.getElementById('content');
+  const progressFill = document.getElementById('progressFill');
+  const stepLabel = document.getElementById('stepLabel');
+  const messageEl = document.getElementById('message');
+ 
+  function updateProgress() {
+    progressFill.style.width = `${(currentStep / (TOTAL_STEPS - 1)) * 100}%`;
+    if (currentStep === 0) {
+      stepLabel.textContent = '說明頁';
+    } else if (currentStep <= LAYERS.length) {
+      stepLabel.textContent = `第 ${currentStep} / ${LAYERS.length} 層`;
+    } else {
+      stepLabel.textContent = '確認送出';
+    }
+  }
+ 
+  function renderIntro() {
+    contentEl.innerHTML = `
+      <h1>安全 Q16 深入分析量表</h1>
+      <h2 class="subtitle">組織安全文化與應變韌性延伸評估</h2>
+      ${unitName ? `<p style="text-align:center;font-size:13px;color:var(--primary-dark);margin-top:-14px;margin-bottom:20px;">填答單位：${unitName}</p>` : ''}
+ 
+      <div class="intro-section">
+        <p>本量表為「安全 Q12」的延伸深入分析，聚焦「應變認知與個人準備」、「管理支持與風險回應」、「團隊安全行為與協作」、「訓練演練與持續改善」四個面向，共16題。採用李克特 5 點量表評分，請依實際狀況誠實作答。本問卷採不記名方式進行。</p>
+      </div>
+ 
+      <div class="scale-legend">
+        ${LEGEND.map((l, i) => `<span>${i + 1} = ${l}</span>`).join('')}
+      </div>
+ 
+      <div class="btn-row">
+        <button class="btn-primary" id="startBtn" style="flex:1">開始作答</button>
+      </div>
+    `;
+    document.getElementById('startBtn').addEventListener('click', () => {
+      hideMessage();
+      currentStep = 1;
+      render();
+    });
+  }
+ 
+  function renderLayer(layerIndex) {
+    const layer = LAYERS[layerIndex];
+    contentEl.innerHTML = `
+      <div class="layer-title">${layer.title}</div>
+      ${layer.questions.map(q => `
+        <div class="question" data-code="${q.code}">
+          <div class="question-code">${q.code}</div>
+          <div class="question-text">${q.text}</div>
+          <div class="options">
+            ${[1, 2, 3, 4, 5].map(v => `
+              <div class="option-circle ${answers[q.code] === v ? 'selected' : ''}" data-code="${q.code}" data-value="${v}">${v}</div>
+            `).join('')}
+          </div>
+          <div class="option-hint">① 非常不同意　② 不同意　③ 普通/無意見　④ 同意　⑤ 非常同意</div>
+        </div>
+      `).join('')}
+      <div class="btn-row">
+        <button class="btn-secondary" id="prevBtn">上一步</button>
+        <button class="btn-primary" id="nextBtn">下一步</button>
+      </div>
+    `;
+ 
+    contentEl.querySelectorAll('.option-circle').forEach(el => {
+      el.addEventListener('click', () => {
+        const code = el.dataset.code;
+        const value = parseInt(el.dataset.value, 10);
+        answers[code] = value;
+        contentEl.querySelectorAll(`.option-circle[data-code="${code}"]`).forEach(o => o.classList.remove('selected'));
+        el.classList.add('selected');
+        contentEl.querySelector(`.question[data-code="${code}"]`).classList.remove('unanswered');
+        hideMessage();
+      });
+    });
+ 
+    document.getElementById('prevBtn').addEventListener('click', () => {
+      currentStep -= 1;
+      render();
+    });
+ 
+    document.getElementById('nextBtn').addEventListener('click', () => {
+      const unanswered = layer.questions.filter(q => !answers[q.code]);
+      if (unanswered.length > 0) {
+        unanswered.forEach(q => {
+          contentEl.querySelector(`.question[data-code="${q.code}"]`).classList.add('unanswered');
+        });
+        showMessage('請完成本頁所有題目再繼續', 'error');
+        return;
+      }
+      hideMessage();
+      currentStep += 1;
+      render();
+    });
+  }
+ 
+  function renderReview() {
+    const allQuestions = LAYERS.flatMap(l => l.questions);
+    contentEl.innerHTML = `
+      <div class="layer-title">確認作答結果</div>
+      <table class="review-table">
+        ${allQuestions.map(q => `
+          <tr><th>${q.code}．${q.text}</th><td class="review-score">${answers[q.code]}</td></tr>
+        `).join('')}
+      </table>
+      <div class="btn-row">
+        <button class="btn-secondary" id="prevBtn">上一步</button>
+        <button class="btn-primary" id="submitBtn">送出</button>
+      </div>
+    `;
+ 
+    document.getElementById('prevBtn').addEventListener('click', () => {
+      currentStep -= 1;
+      render();
+    });
+ 
+    document.getElementById('submitBtn').addEventListener('click', submitResult);
+  }
+ 
+  async function submitResult() {
+    const submitBtn = document.getElementById('submitBtn');
+    submitBtn.disabled = true;
+    submitBtn.textContent = '送出中...';
+    hideMessage();
+ 
+    const payload = { id: customerId, ...answers };
+ 
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/submit_result_q16.php`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+ 
+      if (data.success) {
+        contentEl.innerHTML = `<h1>感謝您的填寫！</h1><p style="text-align:center;color:var(--muted);">您的作答已成功送出。</p>`;
+        stepLabel.textContent = '已完成';
+        progressFill.style.width = '100%';
+      } else {
+        showMessage(data.message || '送出失敗，請稍後再試', 'error');
+        submitBtn.disabled = false;
+        submitBtn.textContent = '送出';
+      }
+    } catch (err) {
+      showMessage('無法連線至伺服器，請稍後再試', 'error');
+      submitBtn.disabled = false;
+      submitBtn.textContent = '送出';
+    }
+  }
+ 
+  function showMessage(text, type) { messageEl.textContent = text; messageEl.className = type; }
+  function hideMessage() { messageEl.textContent = ''; messageEl.className = ''; }
+ 
+  function render() {
+    updateProgress();
+    if (currentStep === 0) {
+      renderIntro();
+    } else if (currentStep <= LAYERS.length) {
+      renderLayer(currentStep - 1);
+    } else {
+      renderReview();
+    }
+    window.scrollTo(0, 0);
+  }
+ 
+  function renderBlocked(message) {
+    contentEl.innerHTML = `
+      <h1>無法進入問卷</h1>
+      <p style="text-align:center;color:var(--muted);font-size:14px;line-height:1.8;">${message}</p>
+    `;
+    stepLabel.textContent = '';
+    progressFill.style.width = '0%';
+  }
+ 
+  async function verifyAndStart() {
+    contentEl.innerHTML = `<p style="text-align:center;color:var(--muted);">驗證中，請稍候...</p>`;
+ 
+    if (!customerId) {
+      renderBlocked('連結缺少ID參數，請確認您使用的是正確的問卷連結。');
+      return;
+    }
+ 
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/verify_q16.php?id=${encodeURIComponent(customerId)}`);
+      const data = await res.json();
+ 
+      if (!data.success) {
+        renderBlocked(data.message || '此連結無法使用，請聯繫相關單位確認。');
+        return;
+      }
+ 
+      unitName = data.unit_name || '';
+      render();
+    } catch (err) {
+      renderBlocked('無法連線至伺服器，請稍後再試。');
+    }
+  }
+ 
+  verifyAndStart();
+</script>
+ 
+</body>
+</html>
+ 
