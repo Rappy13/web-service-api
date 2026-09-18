@@ -5,6 +5,7 @@
  */
 
 header('Content-Type: application/json; charset=utf-8');
+header('Cache-Control: no-store, no-cache, must-revalidate');
 
 require_once __DIR__ . '/admin_auth.php';
 require_admin();
@@ -20,7 +21,7 @@ $pdo = get_db_connection();
 
 try {
     $stmt = $pdo->query(
-        'SELECT id, unit_name, email, phone, created_at, expires_at 
+        'SELECT id, unit_name, email, phone, created_at, expires_at, q16_started_at, q16_expires_at 
          FROM customer 
          ORDER BY created_at DESC'
     );
