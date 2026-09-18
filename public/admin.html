@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>後台管理</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
 <style>
   :root {
     --primary: #4f46e5;
@@ -200,6 +201,43 @@
   .badge-sm.not_engaged { background: #fef9c3; color: #a16207; }
   .badge-sm.disengaged { background: #fee2e2; color: #b91c1c; }
   .badge-sm.watch { background: #f3f4f6; color: var(--muted); }
+
+  /* ---- Q16 生成區塊 ---- */
+  .q16-generate-box {
+    text-align: center;
+    padding: 20px;
+  }
+  .q16-generate-box p {
+    font-size: 13px;
+    color: var(--muted);
+    margin: 0 0 16px;
+  }
+  .q16-generate-box button { max-width: 240px; margin: 0 auto; }
+  .q16-link-box {
+    background: #f9fafb;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px;
+    margin-bottom: 20px;
+  }
+  .q16-link-box a {
+    color: var(--primary);
+    word-break: break-all;
+    font-size: 13.5px;
+  }
+  .q16-link-box .q16-meta {
+    font-size: 12.5px;
+    color: var(--muted);
+    margin-top: 8px;
+  }
+  #q16qrcode {
+    margin-top: 14px;
+  }
+  #q16qrcode img {
+    border: 6px solid #fff;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  }
 </style>
 </head>
 <body>
@@ -231,6 +269,12 @@
     Q7: 'Q7', Q8: 'Q8', Q9: 'Q9', Q10: 'Q10', Q11: 'Q11', Q12: 'Q12',
   };
 
+  const Q16_RECORD_FIELD_LABELS = {
+    FR1: 'FR1', FR2: 'FR2', FR3: 'FR3', FR4: 'FR4', FR5: 'FR5', FR6: 'FR6',
+    FR7: 'FR7', FR8: 'FR8', FR9: 'FR9', FR10: 'FR10', FR11: 'FR11', FR12: 'FR12',
+    FR13: 'FR13', FR14: 'FR14', FR15: 'FR15', FR16: 'FR16',
+  };
+
   function escapeHtml(str) {
     if (str === null || str === undefined || str === '') return '-';
     return String(str).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -248,6 +292,51 @@
     const c = classifyScore(score);
     if (!c) return '';
     return `<span class="badge-sm ${c.level}">${c.label}</span>`;
+  }
+
+  // 共用：把某份result分析資料（層平均+逐筆紀錄）組成HTML，Q12/Q16共用
+  function renderAnalysisSections(resultData, meanings, recordFieldLabels) {
+    const fieldKeys = Object.keys(recordFieldLabels);
+    return `
+      <div class="card padded">
+        <div class="section-title">各層平均分數<span class="response-count">（共 ${resultData.response_count} 筆作答）</span></div>
+        <p style="font-size:12px;color:var(--muted);margin:-10px 0 16px;">分類標準：平均≥4.5主動積極、3.3～4.4消極被動、低於3.3漠不關心</p>
+        <div class="layer-avg-grid">
+          ${resultData.layer_averages.map(l => `
+            <div class="layer-avg-card">
+              <div class="layer-name">${escapeHtml(l.title)}</div>
+              ${l.questions.map(q => `
+                <div class="q-row">
+                  <span class="q-code">${q}${meanings && meanings[q] ? ' - ' + meanings[q] : ''}</span>
+                  <span class="q-score">${resultData.question_averages[q] !== null ? resultData.question_averages[q] : '-'}${badgeHtml(resultData.question_averages[q])}</span>
+                </div>
+              `).join('')}
+            </div>
+          `).join('')}
+        </div>
+      </div>
+
+      <div class="card padded">
+        <div class="section-title">逐筆作答結果<span class="response-count">（依填寫時間排序）</span></div>
+        ${resultData.records.length === 0 ? `
+          <div class="empty-state" style="padding:20px 0;">目前尚無作答紀錄</div>
+        ` : `
+          <div class="table-scroll">
+            <table>
+              <thead><tr><th>個人平均分數</th>${fieldKeys.map(k => `<th>${recordFieldLabels[k]}</th>`).join('')}</tr></thead>
+              <tbody>
+                ${resultData.records.map(r => `
+                  <tr>
+                    <td><strong style="color:var(--primary-dark);">${r.personal_average}</strong>${badgeHtml(r.personal_average)}</td>
+                    ${fieldKeys.map(k => `<td>${escapeHtml(r[k])}</td>`).join('')}
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+        `}
+      </div>
+    `;
   }
 
   // ============ 登入畫面 ============
@@ -425,7 +514,6 @@
     }
 
     const c = data.customer;
-    const fieldKeys = Object.keys(RECORD_FIELD_LABELS);
 
     detailContent.className = '';
     detailContent.innerHTML = `
@@ -436,49 +524,112 @@
           <div class="info-item"><div class="label">Email</div><div class="value">${escapeHtml(c.email)}</div></div>
           <div class="info-item"><div class="label">電話</div><div class="value">${escapeHtml(c.phone)}</div></div>
           <div class="info-item"><div class="label">建立時間</div><div class="value">${escapeHtml(c.created_at)}</div></div>
-          <div class="info-item"><div class="label">過期時間</div><div class="value">${escapeHtml(c.expires_at)}</div></div>
+          <div class="info-item"><div class="label">Q12過期時間</div><div class="value">${escapeHtml(c.expires_at)}</div></div>
         </div>
       </div>
 
       <div class="card padded">
-        <div class="section-title">各層平均分數<span class="response-count">（共 ${data.response_count} 筆作答）</span></div>
-        <p style="font-size:12px;color:var(--muted);margin:-10px 0 16px;">分類標準：平均≥4.5主動積極、3.3～4.4消極被動、低於3.3漠不關心</p>
-        <div class="layer-avg-grid">
-          ${data.layer_averages.map(l => `
-            <div class="layer-avg-card">
-              <div class="layer-name">${escapeHtml(l.title)}</div>
-              ${l.questions.map(q => `
-                <div class="q-row">
-                  <span class="q-code">${q} - ${QUESTION_MEANINGS[q]}</span>
-                  <span class="q-score">${data.question_averages[q] !== null ? data.question_averages[q] : '-'}${badgeHtml(data.question_averages[q])}</span>
-                </div>
-              `).join('')}
-            </div>
-          `).join('')}
-        </div>
+        <div class="section-title">安全 Q12</div>
       </div>
+      ${renderAnalysisSections(data.q12, QUESTION_MEANINGS, RECORD_FIELD_LABELS)}
 
       <div class="card padded">
-        <div class="section-title">逐筆作答結果<span class="response-count">（依填寫時間排序）</span></div>
-        ${data.records.length === 0 ? `
-          <div class="empty-state" style="padding:20px 0;">目前尚無作答紀錄</div>
-        ` : `
-          <div class="table-scroll">
-            <table>
-              <thead><tr><th>個人平均分數</th>${fieldKeys.map(k => `<th>${RECORD_FIELD_LABELS[k]}</th>`).join('')}</tr></thead>
-              <tbody>
-                ${data.records.map(r => `
-                  <tr>
-                    <td><strong style="color:var(--primary-dark);">${r.personal_average}</strong>${badgeHtml(r.personal_average)}</td>
-                    ${fieldKeys.map(k => `<td>${escapeHtml(r[k])}</td>`).join('')}
-                  </tr>
-                `).join('')}
-              </tbody>
-            </table>
+        <div class="section-title">安全 Q16 深入分析</div>
+        <div id="q16Area"></div>
+      </div>
+      ${data.q16_started ? renderAnalysisSections(data.q16, null, Q16_RECORD_FIELD_LABELS) : ''}
+    `;
+
+    renderQ16Area(customerId, data);
+  }
+
+  function renderQ16Area(customerId, data) {
+    const q16Area = document.getElementById('q16Area');
+    const c = data.customer;
+
+    if (!data.q16_started) {
+      // 尚未生成Q16
+      if (!data.q12_expired) {
+        q16Area.innerHTML = `
+          <div class="q16-generate-box">
+            <p>需等Q12作答期限截止後，才能生成Q16量表。</p>
+            <button class="btn-primary" disabled>生成Q16量表</button>
           </div>
-        `}
+        `;
+      } else {
+        q16Area.innerHTML = `
+          <div class="q16-generate-box">
+            <p>Q12作答期限已截止，可以生成Q16量表（使用同一組ID，作答期限為生成後3天）。</p>
+            <button class="btn-primary" id="generateQ16Btn">生成Q16量表</button>
+          </div>
+        `;
+        document.getElementById('generateQ16Btn').addEventListener('click', () => generateQ16(customerId));
+      }
+      return;
+    }
+
+    // 已生成Q16：顯示連結、QR code、過期時間
+    const surveyUrl = `${location.origin}/fireq16.html?id=${encodeURIComponent(c.id)}`;
+    q16Area.innerHTML = `
+      <div class="q16-link-box">
+        <a href="${surveyUrl}" target="_blank" rel="noopener">${surveyUrl}</a>
+        <div class="q16-meta">
+          生成時間：${escapeHtml(c.q16_started_at)}　｜　過期時間：${escapeHtml(c.q16_expires_at)}（GMT+8）
+        </div>
+        <div id="q16qrcode"></div>
       </div>
     `;
+
+    try {
+      const qr = qrcode(0, 'M');
+      qr.addData(surveyUrl);
+      qr.make();
+      document.getElementById('q16qrcode').innerHTML = qr.createImgTag(4, 8);
+    } catch (qrErr) {
+      // QR產生失敗不影響連結本身的正確性
+    }
+  }
+
+  async function generateQ16(customerId) {
+    const btn = document.getElementById('generateQ16Btn');
+    if (btn) {
+      btn.disabled = true;
+      btn.textContent = '生成中...';
+    }
+
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/admin_generate_q16.php`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: customerId }),
+      });
+
+      if (res.status === 401) {
+        renderLogin();
+        return;
+      }
+
+      const data = await res.json();
+
+      if (data.success) {
+        if (!data.email_sent) {
+          alert('Q16量表已生成，但Email寄送失敗，請手動複製下方連結給填答人員。');
+        }
+        renderDetail(customerId); // 重新載入整頁詳情，顯示剛生成的Q16連結
+      } else {
+        alert(data.message || '生成失敗，請稍後再試');
+        if (btn) {
+          btn.disabled = false;
+          btn.textContent = '生成Q16量表';
+        }
+      }
+    } catch (err) {
+      alert('無法連線至伺服器，請稍後再試');
+      if (btn) {
+        btn.disabled = false;
+        btn.textContent = '生成Q16量表';
+      }
+    }
   }
 
   // ============ 路由 ============
