@@ -433,7 +433,7 @@
   // ============ 共用：帶登入檢查的fetch ============
   // 回傳data，如果是401會直接切到登入畫面並回傳null
   async function apiGet(path) {
-    const res = await fetch(`${API_BASE_URL}${path}`);
+    const res = await fetch(`${API_BASE_URL}${path}`, { cache: 'no-store' });
     if (res.status === 401) {
       renderLogin();
       return null;
