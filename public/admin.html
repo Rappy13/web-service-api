@@ -513,6 +513,12 @@
       return;
     }
 
+    if (!data.q12) {
+      detailContent.className = 'error-state';
+      detailContent.textContent = 'API回傳格式不正確（缺少q12資料），請確認 admin_customer_detail.php 是否已部署到最新版本。';
+      return;
+    }
+
     const c = data.customer;
 
     detailContent.className = '';
