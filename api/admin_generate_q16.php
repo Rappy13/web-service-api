@@ -83,7 +83,7 @@ try {
     $siteUrl = rtrim(getenv('SITE_URL') ?: (($_SERVER['REQUEST_SCHEME'] ?? 'https') . '://' . $_SERVER['HTTP_HOST']), '/');
     $surveyUrl = $siteUrl . '/fireq16.html?id=' . $id;
 
-    $emailResult = send_survey_email($customer['email'], $customer['unit_name'], $surveyUrl, $times['q16_expires_at']);
+    $emailResult = send_survey_email($customer['email'], $customer['unit_name'], $surveyUrl, $times['q16_expires_at'], '安全 Q16 深入分析');
 
     $debug = getenv('APP_DEBUG') === 'true';
     echo json_encode([
