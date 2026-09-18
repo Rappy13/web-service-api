@@ -1,6 +1,3 @@
-
-
-Fireq16 · HTML
 <!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
@@ -35,11 +32,11 @@ Fireq16 · HTML
     padding: 32px 28px;
     margin-bottom: 16px;
   }
- 
+
   .progress-track { height: 6px; background: #e5e7eb; border-radius: 999px; overflow: hidden; margin-bottom: 20px; }
   .progress-fill { height: 100%; background: var(--primary); border-radius: 999px; transition: width .25s ease; }
   .step-label { font-size: 13px; color: var(--muted); margin-bottom: 20px; }
- 
+
   h1 { font-size: 22px; margin: 0 0 6px; text-align: center; }
   h2.subtitle { font-size: 15px; font-weight: 400; color: var(--muted); text-align: center; margin: 0 0 24px; }
   .intro-section p { font-size: 14px; line-height: 1.8; color: #374151; margin: 0 0 20px; }
@@ -48,7 +45,7 @@ Fireq16 · HTML
     background: #fef2f2; color: var(--primary-dark); font-size: 12px;
     padding: 4px 10px; border-radius: 999px; border: 1px solid #fecaca;
   }
- 
+
   .layer-title {
     font-size: 17px; font-weight: 700; margin: 0 0 20px; color: var(--primary-dark);
     border-left: 4px solid var(--primary); padding-left: 10px;
@@ -67,12 +64,12 @@ Fireq16 · HTML
   .option-circle.selected { background: var(--primary); border-color: var(--primary); color: #fff; transform: scale(1.08); }
   .option-hint { font-size: 11px; color: var(--muted); margin-top: 6px; }
   .question.unanswered .question-text { color: var(--error); }
- 
+
   .review-table { width: 100%; border-collapse: collapse; font-size: 13.5px; margin-bottom: 10px; }
   .review-table th, .review-table td { text-align: left; padding: 8px 6px; border-bottom: 1px solid #f0f0f0; }
   .review-table th { color: var(--muted); font-weight: 600; width: 70%; }
   .review-score { font-weight: 700; color: var(--primary-dark); text-align: center; }
- 
+
   .btn-row { display: flex; gap: 12px; margin-top: 24px; }
   button { flex: 1; padding: 13px; font-size: 15px; font-weight: 600; border-radius: 8px; border: none; cursor: pointer; transition: background .15s, opacity .15s; }
   .btn-primary { background: var(--primary); color: #fff; }
@@ -80,14 +77,33 @@ Fireq16 · HTML
   .btn-primary:disabled { background: #9ca3af; cursor: not-allowed; }
   .btn-secondary { background: #f3f4f6; color: var(--text); border: 1px solid var(--border); }
   .btn-secondary:hover { background: #e5e7eb; }
- 
+
   #message { margin-top: 14px; font-size: 14px; text-align: center; display: none; }
   #message.error { color: var(--error); display: block; }
   #message.success { color: var(--success); display: block; font-weight: 600; }
+
+  /* ---- 基本資料 ---- */
+  label { display: block; font-size: 14px; font-weight: 600; margin-bottom: 6px; }
+  .required::after { content: " *"; color: var(--error); }
+  input[type="text"] {
+    width: 100%; padding: 10px 12px; font-size: 15px; border: 1px solid var(--border);
+    border-radius: 8px; margin-bottom: 20px; outline: none;
+  }
+  input[type="text"]:focus { border-color: var(--primary); }
+  .field-group { margin-bottom: 20px; }
+  .field-group.unanswered label { color: var(--error); }
+  .yesno-options { display: flex; gap: 10px; }
+  .yesno-btn {
+    padding: 10px 28px; border-radius: 8px; border: 2px solid var(--border);
+    cursor: pointer; user-select: none; font-size: 14px; font-weight: 600;
+    background: #fff; transition: all .15s;
+  }
+  .yesno-btn:hover { border-color: var(--primary); }
+  .yesno-btn.selected { background: var(--primary); border-color: var(--primary); color: #fff; }
 </style>
 </head>
 <body>
- 
+
 <div class="wrap">
   <div class="card">
     <div class="progress-track"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
@@ -96,15 +112,15 @@ Fireq16 · HTML
     <div id="message"></div>
   </div>
 </div>
- 
+
 <script>
   const API_BASE_URL = 'https://web-service-api-ru6y.onrender.com';
- 
+
   const urlParams = new URLSearchParams(window.location.search);
   const customerId = urlParams.get('id') || '';
- 
+
   const LEGEND = ['非常不同意', '不同意', '普通/無意見', '同意', '非常同意'];
- 
+
   const LAYERS = [
     {
       title: '一、應變認知與個人準備',
@@ -143,43 +159,58 @@ Fireq16 · HTML
       ],
     },
   ];
- 
-  // step 0 = 說明頁, 1~(LAYERS.length) = 題目層, 最後 = 確認頁
-  const TOTAL_STEPS = LAYERS.length + 2;
+
+  const PROFILE_FIELDS = [
+    { key: 'years_of_service', label: '年資', type: 'text', placeholder: '例如：3年' },
+    { key: 'position', label: '職務', type: 'text', placeholder: '請輸入您的職務' },
+    { key: 'is_fire_brigade_member', label: '是否為自衛消防編組成員', type: 'yesno' },
+    { key: 'has_fire_training', label: '是否接受過消防訓練', type: 'yesno' },
+    { key: 'last_training_time', label: '最近一次訓練時間', type: 'text', placeholder: '例如：2026年3月，若尚未受訓請填「尚未」' },
+    { key: 'used_extinguisher', label: '是否實際操作過滅火器', type: 'yesno' },
+    { key: 'joined_tabletop_drill', label: '是否參與過桌面演練', type: 'yesno' },
+    { key: 'joined_live_drill', label: '是否參加過實兵演練', type: 'yesno' },
+    { key: 'experienced_real_fire', label: '是否曾遇過真實火警', type: 'yesno' },
+  ];
+
+  // step 0 = 說明頁, 1 = 基本資料, 2~(LAYERS.length+1) = 題目層, 最後 = 確認頁
+  const TOTAL_STEPS = LAYERS.length + 3;
   let currentStep = 0;
   let unitName = '';
+  const profile = {}; // { years_of_service: '3年', is_fire_brigade_member: '是', ... }
   const answers = {}; // { FR1: 3, FR2: 5, ... }
- 
+
   const contentEl = document.getElementById('content');
   const progressFill = document.getElementById('progressFill');
   const stepLabel = document.getElementById('stepLabel');
   const messageEl = document.getElementById('message');
- 
+
   function updateProgress() {
     progressFill.style.width = `${(currentStep / (TOTAL_STEPS - 1)) * 100}%`;
     if (currentStep === 0) {
       stepLabel.textContent = '說明頁';
-    } else if (currentStep <= LAYERS.length) {
-      stepLabel.textContent = `第 ${currentStep} / ${LAYERS.length} 層`;
+    } else if (currentStep === 1) {
+      stepLabel.textContent = '基本資料';
+    } else if (currentStep <= LAYERS.length + 1) {
+      stepLabel.textContent = `第 ${currentStep - 1} / ${LAYERS.length} 層`;
     } else {
       stepLabel.textContent = '確認送出';
     }
   }
- 
+
   function renderIntro() {
     contentEl.innerHTML = `
       <h1>安全 Q16 深入分析量表</h1>
       <h2 class="subtitle">組織安全文化與應變韌性延伸評估</h2>
       ${unitName ? `<p style="text-align:center;font-size:13px;color:var(--primary-dark);margin-top:-14px;margin-bottom:20px;">填答單位：${unitName}</p>` : ''}
- 
+
       <div class="intro-section">
         <p>本量表為「安全 Q12」的延伸深入分析，聚焦「應變認知與個人準備」、「管理支持與風險回應」、「團隊安全行為與協作」、「訓練演練與持續改善」四個面向，共16題。採用李克特 5 點量表評分，請依實際狀況誠實作答。本問卷採不記名方式進行。</p>
       </div>
- 
+
       <div class="scale-legend">
         ${LEGEND.map((l, i) => `<span>${i + 1} = ${l}</span>`).join('')}
       </div>
- 
+
       <div class="btn-row">
         <button class="btn-primary" id="startBtn" style="flex:1">開始作答</button>
       </div>
@@ -190,7 +221,74 @@ Fireq16 · HTML
       render();
     });
   }
- 
+
+  function renderProfile() {
+    contentEl.innerHTML = `
+      <div class="layer-title">基本資料</div>
+      ${PROFILE_FIELDS.map(f => {
+        if (f.type === 'text') {
+          return `
+            <div class="field-group" data-key="${f.key}">
+              <label class="required">${f.label}</label>
+              <input type="text" class="profile-text" data-key="${f.key}" placeholder="${f.placeholder || ''}" value="${profile[f.key] || ''}">
+            </div>
+          `;
+        }
+        return `
+          <div class="field-group" data-key="${f.key}">
+            <label class="required">${f.label}</label>
+            <div class="yesno-options">
+              <div class="yesno-btn ${profile[f.key] === '是' ? 'selected' : ''}" data-key="${f.key}" data-value="是">是</div>
+              <div class="yesno-btn ${profile[f.key] === '否' ? 'selected' : ''}" data-key="${f.key}" data-value="否">否</div>
+            </div>
+          </div>
+        `;
+      }).join('')}
+      <div class="btn-row">
+        <button class="btn-secondary" id="prevBtn">上一步</button>
+        <button class="btn-primary" id="nextBtn">下一步</button>
+      </div>
+    `;
+
+    contentEl.querySelectorAll('.profile-text').forEach(el => {
+      el.addEventListener('input', () => {
+        profile[el.dataset.key] = el.value;
+        contentEl.querySelector(`.field-group[data-key="${el.dataset.key}"]`).classList.remove('unanswered');
+        hideMessage();
+      });
+    });
+
+    contentEl.querySelectorAll('.yesno-btn').forEach(el => {
+      el.addEventListener('click', () => {
+        const key = el.dataset.key;
+        profile[key] = el.dataset.value;
+        contentEl.querySelectorAll(`.yesno-btn[data-key="${key}"]`).forEach(b => b.classList.remove('selected'));
+        el.classList.add('selected');
+        contentEl.querySelector(`.field-group[data-key="${key}"]`).classList.remove('unanswered');
+        hideMessage();
+      });
+    });
+
+    document.getElementById('prevBtn').addEventListener('click', () => {
+      currentStep -= 1;
+      render();
+    });
+
+    document.getElementById('nextBtn').addEventListener('click', () => {
+      const missing = PROFILE_FIELDS.filter(f => !profile[f.key] || String(profile[f.key]).trim() === '');
+      if (missing.length > 0) {
+        missing.forEach(f => {
+          contentEl.querySelector(`.field-group[data-key="${f.key}"]`).classList.add('unanswered');
+        });
+        showMessage('請完成所有必填欄位', 'error');
+        return;
+      }
+      hideMessage();
+      currentStep += 1;
+      render();
+    });
+  }
+
   function renderLayer(layerIndex) {
     const layer = LAYERS[layerIndex];
     contentEl.innerHTML = `
@@ -212,7 +310,7 @@ Fireq16 · HTML
         <button class="btn-primary" id="nextBtn">下一步</button>
       </div>
     `;
- 
+
     contentEl.querySelectorAll('.option-circle').forEach(el => {
       el.addEventListener('click', () => {
         const code = el.dataset.code;
@@ -224,12 +322,12 @@ Fireq16 · HTML
         hideMessage();
       });
     });
- 
+
     document.getElementById('prevBtn').addEventListener('click', () => {
       currentStep -= 1;
       render();
     });
- 
+
     document.getElementById('nextBtn').addEventListener('click', () => {
       const unanswered = layer.questions.filter(q => !answers[q.code]);
       if (unanswered.length > 0) {
@@ -244,11 +342,17 @@ Fireq16 · HTML
       render();
     });
   }
- 
+
   function renderReview() {
     const allQuestions = LAYERS.flatMap(l => l.questions);
     contentEl.innerHTML = `
-      <div class="layer-title">確認作答結果</div>
+      <div class="layer-title">基本資料</div>
+      <table class="review-table">
+        ${PROFILE_FIELDS.map(f => `
+          <tr><th>${f.label}</th><td class="review-score">${profile[f.key]}</td></tr>
+        `).join('')}
+      </table>
+      <div class="layer-title" style="margin-top:24px;">確認作答結果</div>
       <table class="review-table">
         ${allQuestions.map(q => `
           <tr><th>${q.code}．${q.text}</th><td class="review-score">${answers[q.code]}</td></tr>
@@ -259,23 +363,23 @@ Fireq16 · HTML
         <button class="btn-primary" id="submitBtn">送出</button>
       </div>
     `;
- 
+
     document.getElementById('prevBtn').addEventListener('click', () => {
       currentStep -= 1;
       render();
     });
- 
+
     document.getElementById('submitBtn').addEventListener('click', submitResult);
   }
- 
+
   async function submitResult() {
     const submitBtn = document.getElementById('submitBtn');
     submitBtn.disabled = true;
     submitBtn.textContent = '送出中...';
     hideMessage();
- 
-    const payload = { id: customerId, ...answers };
- 
+
+    const payload = { id: customerId, ...profile, ...answers };
+
     try {
       const res = await fetch(`${API_BASE_URL}/api/submit_result_q16.php`, {
         method: 'POST',
@@ -283,7 +387,7 @@ Fireq16 · HTML
         body: JSON.stringify(payload),
       });
       const data = await res.json();
- 
+
       if (data.success) {
         contentEl.innerHTML = `<h1>感謝您的填寫！</h1><p style="text-align:center;color:var(--muted);">您的作答已成功送出。</p>`;
         stepLabel.textContent = '已完成';
@@ -299,22 +403,24 @@ Fireq16 · HTML
       submitBtn.textContent = '送出';
     }
   }
- 
+
   function showMessage(text, type) { messageEl.textContent = text; messageEl.className = type; }
   function hideMessage() { messageEl.textContent = ''; messageEl.className = ''; }
- 
+
   function render() {
     updateProgress();
     if (currentStep === 0) {
       renderIntro();
-    } else if (currentStep <= LAYERS.length) {
-      renderLayer(currentStep - 1);
+    } else if (currentStep === 1) {
+      renderProfile();
+    } else if (currentStep <= LAYERS.length + 1) {
+      renderLayer(currentStep - 2);
     } else {
       renderReview();
     }
     window.scrollTo(0, 0);
   }
- 
+
   function renderBlocked(message) {
     contentEl.innerHTML = `
       <h1>無法進入問卷</h1>
@@ -323,34 +429,33 @@ Fireq16 · HTML
     stepLabel.textContent = '';
     progressFill.style.width = '0%';
   }
- 
+
   async function verifyAndStart() {
     contentEl.innerHTML = `<p style="text-align:center;color:var(--muted);">驗證中，請稍候...</p>`;
- 
+
     if (!customerId) {
       renderBlocked('連結缺少ID參數，請確認您使用的是正確的問卷連結。');
       return;
     }
- 
+
     try {
       const res = await fetch(`${API_BASE_URL}/api/verify_q16.php?id=${encodeURIComponent(customerId)}`);
       const data = await res.json();
- 
+
       if (!data.success) {
         renderBlocked(data.message || '此連結無法使用，請聯繫相關單位確認。');
         return;
       }
- 
+
       unitName = data.unit_name || '';
       render();
     } catch (err) {
       renderBlocked('無法連線至伺服器，請稍後再試。');
     }
   }
- 
+
   verifyAndStart();
 </script>
- 
+
 </body>
 </html>
- 
