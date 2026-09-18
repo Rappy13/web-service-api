@@ -453,7 +453,8 @@
         <table>
           <thead>
             <tr>
-              <th>ID</th><th>單位名稱</th><th>Email</th><th>電話</th><th>建立時間</th><th>過期時間</th>
+              <th>ID</th><th>單位名稱</th><th>Email</th><th>電話</th><th>建立時間</th><th>Q12過期時間</th>
+              <th>Q16狀態</th><th>Q16開始時間</th><th>Q16過期時間</th>
             </tr>
           </thead>
           <tbody>
@@ -465,6 +466,9 @@
                 <td>${escapeHtml(c.phone)}</td>
                 <td>${escapeHtml(c.created_at)}</td>
                 <td>${escapeHtml(c.expires_at)}</td>
+                <td>${c.q16_started_at ? '<span class="badge-sm engaged">已開啟</span>' : '<span class="badge-sm watch">未開啟</span>'}</td>
+                <td>${escapeHtml(c.q16_started_at)}</td>
+                <td>${escapeHtml(c.q16_expires_at)}</td>
               </tr>
             `).join('')}
           </tbody>
