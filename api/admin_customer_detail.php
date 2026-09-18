@@ -30,10 +30,10 @@ if ($id === '') {
 
 // 題目層級分組，需與 fireq12.html 的 LAYERS 定義一致
 $LAYERS = [
-    ['title' => '一、基本需求', 'questions' => ['Q1', 'Q2']],
-    ['title' => '二、個人', 'questions' => ['Q3', 'Q4', 'Q5', 'Q6']],
-    ['title' => '三、團隊', 'questions' => ['Q7', 'Q8', 'Q9', 'Q10']],
-    ['title' => '四、成長', 'questions' => ['Q11', 'Q12']],
+    ['title' => '一、基礎條件', 'questions' => ['Q1', 'Q2']],
+    ['title' => '二、支持與發揮', 'questions' => ['Q3', 'Q4', 'Q5', 'Q6']],
+    ['title' => '三、團隊連結', 'questions' => ['Q7', 'Q8', 'Q9', 'Q10']],
+    ['title' => '四、成長與進步', 'questions' => ['Q11', 'Q12']],
 ];
 
 $pdo = get_db_connection();
