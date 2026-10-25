@@ -1,4 +1,4 @@
-FROM php:8.2-apache
+FROM php:8.4-apache
 
 # 安裝 PDO MySQL 驅動 (db_config.php 需要用到)
 RUN docker-php-ext-install pdo pdo_mysql
